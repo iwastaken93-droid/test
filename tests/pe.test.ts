@@ -57,7 +57,7 @@ describe('PE Parser Unit Tests', () => {
     view.setUint32(winOffset + 36, 0, true); // CheckSum
     view.setUint16(winOffset + 40, 3, true); // Subsystem (Console)
     view.setUint16(winOffset + 42, 0x8140, true); // DllCharacteristics
-    
+
     // Stack and Heap (PE32: 16 bytes starting at winOffset + 44)
     const stackHeapOffset = winOffset + 44; // 160
     view.setUint32(stackHeapOffset, 0x100000, true); // SizeOfStackReserve
@@ -102,7 +102,7 @@ describe('PE Parser Unit Tests', () => {
 
     // Verify DOS Header
     expect(parsed.is32Bit).toBe(true);
-    expect(parsed.dosHeader.magic).toBe("MZ");
+    expect(parsed.dosHeader.magic).toBe('MZ');
     expect(parsed.dosHeader.e_lfanew).toBe(64);
 
     // Verify COFF Header
@@ -122,7 +122,7 @@ describe('PE Parser Unit Tests', () => {
 
     // Verify Sections
     expect(parsed.sections.length).toBe(1);
-    expect(parsed.sections[0].name).toBe(".text");
+    expect(parsed.sections[0].name).toBe('.text');
     expect(parsed.sections[0].virtualAddress).toBe(0x1000);
     expect(parsed.sections[0].characteristics).toBe(0x60000020);
   });
@@ -219,16 +219,18 @@ describe('PE Parser Unit Tests', () => {
     const parsed = parser.parse();
 
     expect(parsed.is32Bit).toBe(false);
-    expect(parsed.dosHeader.magic).toBe("MZ");
+    expect(parsed.dosHeader.magic).toBe('MZ');
     expect(parsed.optionalHeader.magic).toBe(0x20b);
     expect(parsed.optionalHeader.imageBase).toBe(0x140000000n);
-    expect(parsed.sections[0].name).toBe(".data");
+    expect(parsed.sections[0].name).toBe('.data');
   });
 
   it('should throw an error if the buffer is too small to contain a valid DOS header', () => {
     const buffer = new ArrayBuffer(32);
     const parser = new PEParser(buffer);
-    expect(() => parser.parse()).toThrow('File too small to contain a valid DOS header');
+    expect(() => parser.parse()).toThrow(
+      'File too small to contain a valid DOS header'
+    );
   });
 
   it('should throw an error for invalid DOS MZ signature', () => {
@@ -248,7 +250,9 @@ describe('PE Parser Unit Tests', () => {
     bytes[1] = 0x5a; // 'Z'
     view.setUint32(60, 100, true); // Points past the end of the buffer (64)
     const parser = new PEParser(buffer);
-    expect(() => parser.parse()).toThrow('PE header offset points outside of file limits');
+    expect(() => parser.parse()).toThrow(
+      'PE header offset points outside of file limits'
+    );
   });
 
   it('should throw an error if PE signature is invalid', () => {

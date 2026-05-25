@@ -37,7 +37,11 @@ export class HexViewer {
   private byteElements: Map<number, HTMLSpanElement> = new Map();
   private asciiElements: Map<number, HTMLSpanElement> = new Map();
 
-  constructor(container: HTMLElement, data: Uint8Array, options: HexViewerOptions = {}) {
+  constructor(
+    container: HTMLElement,
+    data: Uint8Array,
+    options: HexViewerOptions = {}
+  ) {
     this.container = container;
     this.data = data;
     this.bytesPerLine = options.bytesPerLine || 16;
@@ -131,16 +135,21 @@ export class HexViewer {
 
     // Apply optional custom theme properties to container via CSS variables
     const theme = this.options.theme || {};
-    if (theme.background) this.container.style.setProperty('--hex-bg', theme.background);
+    if (theme.background)
+      this.container.style.setProperty('--hex-bg', theme.background);
     if (theme.text) this.container.style.setProperty('--hex-text', theme.text);
-    if (theme.offsetText) this.container.style.setProperty('--hex-offset-text', theme.offsetText);
-    if (theme.hoverBg) this.container.style.setProperty('--hex-hover-bg', theme.hoverBg);
-    if (theme.selectBg) this.container.style.setProperty('--hex-select-bg', theme.selectBg);
-    if (theme.border) this.container.style.setProperty('--hex-border', theme.border);
+    if (theme.offsetText)
+      this.container.style.setProperty('--hex-offset-text', theme.offsetText);
+    if (theme.hoverBg)
+      this.container.style.setProperty('--hex-hover-bg', theme.hoverBg);
+    if (theme.selectBg)
+      this.container.style.setProperty('--hex-select-bg', theme.selectBg);
+    if (theme.border)
+      this.container.style.setProperty('--hex-border', theme.border);
 
     this.offsetCol = document.createElement('div');
     this.offsetCol.className = 'offset-col';
-    
+
     this.hexCol = document.createElement('div');
     this.hexCol.className = 'hex-col';
 
@@ -176,7 +185,10 @@ export class HexViewer {
       // 1. Offset column element
       const offsetDiv = document.createElement('div');
       offsetDiv.className = 'hex-line';
-      offsetDiv.textContent = lineOffset.toString(16).toUpperCase().padStart(8, '0');
+      offsetDiv.textContent = lineOffset
+        .toString(16)
+        .toUpperCase()
+        .padStart(8, '0');
       offsetFrag.appendChild(offsetDiv);
 
       // 2. Hex bytes column elements
@@ -195,11 +207,14 @@ export class HexViewer {
           // Hex byte element
           const byteSpan = document.createElement('span');
           byteSpan.className = 'hex-byte';
-          byteSpan.textContent = byteVal.toString(16).toUpperCase().padStart(2, '0');
+          byteSpan.textContent = byteVal
+            .toString(16)
+            .toUpperCase()
+            .padStart(2, '0');
           byteSpan.dataset.offset = offset.toString();
 
           // Add vertical separator gap in the middle of standard hex editor views (e.g. after 8 bytes)
-          if (byteIndex === (this.bytesPerLine / 2) - 1) {
+          if (byteIndex === this.bytesPerLine / 2 - 1) {
             byteSpan.classList.add('gap-separator');
           }
 
@@ -210,7 +225,10 @@ export class HexViewer {
           const asciiSpan = document.createElement('span');
           asciiSpan.className = 'ascii-char';
           // Render non-printable characters as a dot
-          asciiSpan.textContent = (byteVal >= 32 && byteVal <= 126) ? String.fromCharCode(byteVal) : '.';
+          asciiSpan.textContent =
+            byteVal >= 32 && byteVal <= 126
+              ? String.fromCharCode(byteVal)
+              : '.';
           asciiSpan.dataset.offset = offset.toString();
 
           asciiLineDiv.appendChild(asciiSpan);
@@ -235,7 +253,10 @@ export class HexViewer {
   private setupEvents() {
     const handleMouseOver = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('hex-byte') || target.classList.contains('ascii-char')) {
+      if (
+        target.classList.contains('hex-byte') ||
+        target.classList.contains('ascii-char')
+      ) {
         const offsetAttr = target.dataset.offset;
         if (offsetAttr) {
           this.setHoveredOffset(parseInt(offsetAttr, 10));
@@ -249,7 +270,10 @@ export class HexViewer {
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains('hex-byte') || target.classList.contains('ascii-char')) {
+      if (
+        target.classList.contains('hex-byte') ||
+        target.classList.contains('ascii-char')
+      ) {
         const offsetAttr = target.dataset.offset;
         if (offsetAttr) {
           this.setSelectedOffset(parseInt(offsetAttr, 10));

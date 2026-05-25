@@ -1,4 +1,4 @@
-import { Instruction } from './types';
+import { Instruction } from './types.js';
 
 /**
  * Represents a single Basic Block in the Control Flow Graph.
@@ -25,27 +25,93 @@ export interface BasicBlock {
  */
 export class InstructionClassifier {
   private static readonly RET_MNEMONICS = new Set([
-    'ret', 'retn', 'retf', 'iret', 'sysret', 'ret_n', 'bx lr'
+    'ret',
+    'retn',
+    'retf',
+    'iret',
+    'sysret',
+    'ret_n',
+    'bx lr',
   ]);
 
   private static readonly CALL_MNEMONICS = new Set([
-    'call', 'syscall', 'sysenter', 'bl', 'blx', 'jal', 'jalr'
+    'call',
+    'syscall',
+    'sysenter',
+    'bl',
+    'blx',
+    'jal',
+    'jalr',
   ]);
 
   private static readonly UNCOND_JUMP_MNEMONICS = new Set([
-    'jmp', 'jmp.w', 'b', 'br', 'bx', 'jr', 'j'
+    'jmp',
+    'jmp.w',
+    'b',
+    'br',
+    'bx',
+    'jr',
+    'j',
   ]);
 
   private static readonly COND_JUMP_MNEMONICS = new Set([
     // x86 / x64
-    'je', 'jne', 'jz', 'jnz', 'jg', 'jge', 'jl', 'jle', 'ja', 'jae', 'jb', 'jbe',
-    'js', 'jns', 'jo', 'jno', 'jp', 'jnp', 'jc', 'jnc', 'loop', 'loopz', 'loope',
-    'loopnz', 'loopne', 'jcxz', 'jecxz', 'rcxz',
+    'je',
+    'jne',
+    'jz',
+    'jnz',
+    'jg',
+    'jge',
+    'jl',
+    'jle',
+    'ja',
+    'jae',
+    'jb',
+    'jbe',
+    'js',
+    'jns',
+    'jo',
+    'jno',
+    'jp',
+    'jnp',
+    'jc',
+    'jnc',
+    'loop',
+    'loopz',
+    'loope',
+    'loopnz',
+    'loopne',
+    'jcxz',
+    'jecxz',
+    'rcxz',
     // ARM
-    'beq', 'bne', 'bcs', 'bhs', 'bcc', 'blo', 'bmi', 'bpl', 'bvs', 'bvc', 'bhi',
-    'bls', 'bge', 'blt', 'bgt', 'ble', 'cbz', 'cbnz', 'tbz', 'tbnz',
+    'beq',
+    'bne',
+    'bcs',
+    'bhs',
+    'bcc',
+    'blo',
+    'bmi',
+    'bpl',
+    'bvs',
+    'bvc',
+    'bhi',
+    'bls',
+    'bge',
+    'blt',
+    'bgt',
+    'ble',
+    'cbz',
+    'cbnz',
+    'tbz',
+    'tbnz',
     // RISC-V / MIPS / General
-    'beqz', 'bnez', 'bgez', 'blez', 'bltz', 'bgtz'
+    'beqz',
+    'bnez',
+    'bgez',
+    'blez',
+    'bltz',
+    'bgtz',
   ]);
 
   /**
@@ -78,7 +144,11 @@ export class InstructionClassifier {
   public static isConditionalJump(mnemonic: string): boolean {
     const lower = mnemonic.toLowerCase().trim();
     // Prefix matches for branch instructions like b.eq, b.ne, etc.
-    if (lower.startsWith('b.') || lower.startsWith('bne.') || lower.startsWith('beq.')) {
+    if (
+      lower.startsWith('b.') ||
+      lower.startsWith('bne.') ||
+      lower.startsWith('beq.')
+    ) {
       return true;
     }
     return this.COND_JUMP_MNEMONICS.has(lower);
@@ -89,7 +159,12 @@ export class InstructionClassifier {
    */
   public static isControlTransfer(instruction: Instruction): boolean {
     const m = instruction.mnemonic;
-    return this.isReturn(m) || this.isCall(m) || this.isUnconditionalJump(m) || this.isConditionalJump(m);
+    return (
+      this.isReturn(m) ||
+      this.isCall(m) ||
+      this.isUnconditionalJump(m) ||
+      this.isConditionalJump(m)
+    );
   }
 }
 
@@ -121,7 +196,7 @@ export function getBlockId(address: number): string {
 
 /**
  * Splits a linear sequence of instructions into Basic Blocks (CFG).
- * 
+ *
  * @param instructions Sequence of instructions (ordered by virtual address).
  * @returns Array of BasicBlock objects representing the control flow graph.
  */
@@ -191,12 +266,12 @@ export function buildCFG(instructions: Instruction[]): BasicBlock[] {
       startAddress: first.address,
       endAddress: last.address + last.size,
       instructions: insts,
-      successors: []
+      successors: [],
     };
   }
 
   // Helper to check if a block starting at targetAddress exists.
-  const blockStartAddresses = new Set(blocks.map(b => b.startAddress));
+  const blockStartAddresses = new Set(blocks.map((b) => b.startAddress));
 
   // 4. Determine successors (edges) for each block.
   for (let i = 0; i < blocks.length; i++) {

@@ -45,7 +45,13 @@ export class Decompiler {
 
     const dominators = this.computeDominators(blockMap, entryBlockId);
     const loops = this.identifyLoops(blockMap, entryBlockId, dominators);
-    const ast = this.structureBlocks(blockMap, entryBlockId, dominators, loops, new Set());
+    const ast = this.structureBlocks(
+      blockMap,
+      entryBlockId,
+      dominators,
+      loops,
+      new Set()
+    );
     const pseudocode = this.renderAST(ast, 0);
 
     // Format the function signature
@@ -112,7 +118,10 @@ export class Decompiler {
         intersection.add(id);
 
         const currentDom = dominators.get(id)!;
-        if (currentDom.size !== intersection.size || ![...currentDom].every((x) => intersection.has(x))) {
+        if (
+          currentDom.size !== intersection.size ||
+          ![...currentDom].every((x) => intersection.has(x))
+        ) {
           dominators.set(id, intersection);
           changed = true;
         }
@@ -131,7 +140,10 @@ export class Decompiler {
     entryBlockId: string,
     dominators: Map<string, Set<string>>
   ): Map<string, { header: string; latch: string; body: Set<string> }> {
-    const loops = new Map<string, { header: string; latch: string; body: Set<string> }>();
+    const loops = new Map<
+      string,
+      { header: string; latch: string; body: Set<string> }
+    >();
 
     for (const [nodeId, block] of blockMap) {
       for (const succId of block.successors) {
@@ -224,25 +236,37 @@ export class Decompiler {
       const loop = loops.get(currentId)!;
       // We clone visited to avoid loop body visiting affecting the rest of the flow
       const loopBodyVisited = new Set(visited);
-      
+
       // Compute loop body AST
       // The loop body terminates or continues back to header.
       // We structure the loop body nodes by excluding nodes outside the loop body.
-      const innerBlocks = Array.from(loop.body).filter(id => id !== currentId);
-      
+      const innerBlocks = Array.from(loop.body).filter(
+        (id) => id !== currentId
+      );
+
       let loopBodyAST: ASTNode;
       if (innerBlocks.length > 0) {
         // Start structuring from loop header's successor which is in the body
-        const startBodyId = block.successors.find(s => loop.body.has(s) && s !== currentId);
-        loopBodyAST = startBodyId 
-          ? this.structureBlocks(blockMap, startBodyId, dominators, loops, loopBodyVisited)
+        const startBodyId = block.successors.find(
+          (s) => loop.body.has(s) && s !== currentId
+        );
+        loopBodyAST = startBodyId
+          ? this.structureBlocks(
+              blockMap,
+              startBodyId,
+              dominators,
+              loops,
+              loopBodyVisited
+            )
           : { type: 'Block', statements: [] };
       } else {
         loopBodyAST = { type: 'Block', statements: [] };
       }
 
       // Nodes that are successors of loop latch or header but outside the loop body
-      const outsideSuccessors = block.successors.filter(s => !loop.body.has(s));
+      const outsideSuccessors = block.successors.filter(
+        (s) => !loop.body.has(s)
+      );
       const nextId = outsideSuccessors[0];
 
       const loopNode: ASTNode = {
@@ -253,7 +277,9 @@ export class Decompiler {
       statements.push(loopNode);
 
       if (nextId) {
-        statements.push(this.structureBlocks(blockMap, nextId, dominators, loops, visited));
+        statements.push(
+          this.structureBlocks(blockMap, nextId, dominators, loops, visited)
+        );
       }
 
       return { type: 'Block', statements };
@@ -269,8 +295,20 @@ export class Decompiler {
       const thenVisited = new Set(visited);
       const elseVisited = new Set(visited);
 
-      const thenBranch = this.structureBlocks(blockMap, thenId, dominators, loops, thenVisited);
-      const elseBranch = this.structureBlocks(blockMap, elseId, dominators, loops, elseVisited);
+      const thenBranch = this.structureBlocks(
+        blockMap,
+        thenId,
+        dominators,
+        loops,
+        thenVisited
+      );
+      const elseBranch = this.structureBlocks(
+        blockMap,
+        elseId,
+        dominators,
+        loops,
+        elseVisited
+      );
 
       statements.push({
         type: 'If',
@@ -285,7 +323,9 @@ export class Decompiler {
     // 4. Sequential flow
     if (block.successors.length === 1) {
       const nextId = block.successors[0];
-      statements.push(this.structureBlocks(blockMap, nextId, dominators, loops, visited));
+      statements.push(
+        this.structureBlocks(blockMap, nextId, dominators, loops, visited)
+      );
     }
 
     return { type: 'Block', statements };
@@ -312,7 +352,11 @@ export class Decompiler {
       case 'If': {
         const cond = node.condition;
         let result = `${indent}if (${cond}) {\n${this.renderAST(node.thenBranch, indentLevel + 1)}\n${indent}}`;
-        if (node.elseBranch && node.elseBranch.type === 'Block' && node.elseBranch.statements.length > 0) {
+        if (
+          node.elseBranch &&
+          node.elseBranch.type === 'Block' &&
+          node.elseBranch.statements.length > 0
+        ) {
           result += ` else {\n${this.renderAST(node.elseBranch, indentLevel + 1)}\n${indent}}`;
         }
         return result;

@@ -5,36 +5,52 @@
    ========================================== */
 :root {
   /* Typography */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+  --font-sans:
+    'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-mono:
+    'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
 
   /* Color Palette */
-  --bg-primary: #0F1115;
-  --bg-secondary: #161A21;
-  --bg-tertiary: #1F242E;
-  
+  --bg-primary: #0f1115;
+  --bg-secondary: #161a21;
+  --bg-tertiary: #1f242e;
+
   --border-color: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.16);
-  
+
   /* Text Colors */
-  --text-primary: #F8FAFC;
-  --text-secondary: #E2E8F0;
-  --text-muted: #94A3B8;
+  --text-primary: #f8fafc;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
   --text-disabled: #475569;
-  
+
   /* Brand & Status Colors */
-  --accent-start: #6366F1;
-  --accent-end: #8B5CF6;
-  --success: #10B981;
+  --accent-start: #6366f1;
+  --accent-end: #8b5cf6;
+  --success: #10b981;
   --success-glow: rgba(16, 185, 129, 0.15);
-  --error: #EF4444;
-  --warning: #F59E0B;
-  
+  --error: #ef4444;
+  --warning: #f59e0b;
+
   /* Gradients */
-  --gradient-accent: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-  --gradient-accent-hover: linear-gradient(135deg, #4F46E5, #7C3AED);
-  --gradient-dark: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
-  --gradient-glow: radial-gradient(circle at top left, rgba(99, 102, 241, 0.15), transparent 60%);
+  --gradient-accent: linear-gradient(
+    135deg,
+    var(--accent-start),
+    var(--accent-end)
+  );
+  --gradient-accent-hover: linear-gradient(135deg, #4f46e5, #7c3aed);
+  --gradient-dark: linear-gradient(
+    180deg,
+    var(--bg-secondary),
+    var(--bg-primary)
+  );
+  --gradient-glow: radial-gradient(
+    circle at top left,
+    rgba(99, 102, 241, 0.15),
+    transparent 60%
+  );
 
   /* Layout and Sizing */
   --sidebar-width: 280px;
@@ -48,7 +64,7 @@
   --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5);
   --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
   --shadow-lg: 0 16px 48px -8px rgba(0, 0, 0, 0.8);
-  
+
   /* Transitions */
   --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -58,7 +74,9 @@
 /* ==========================================
    BASE & RESET
    ========================================== */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -84,18 +102,34 @@ body {
 }
 
 /* Typography elements */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   color: var(--text-primary);
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.025em;
 }
 
-h1 { font-size: 2.25rem; }
-h2 { font-size: 1.75rem; }
-h3 { font-size: 1.35rem; }
-p { color: var(--text-secondary); }
-code, pre { font-family: var(--font-mono); }
+h1 {
+  font-size: 2.25rem;
+}
+h2 {
+  font-size: 1.75rem;
+}
+h3 {
+  font-size: 1.35rem;
+}
+p {
+  color: var(--text-secondary);
+}
+code,
+pre {
+  font-family: var(--font-mono);
+}
 
 /* ==========================================
    CUSTOM SCROLLBARS
@@ -128,8 +162,8 @@ code, pre { font-family: var(--font-mono); }
   grid-template-columns: var(--sidebar-width) 1fr;
   grid-template-rows: var(--header-height) 1fr;
   grid-template-areas:
-    "sidebar header"
-    "sidebar main";
+    'sidebar header'
+    'sidebar main';
   min-height: 100vh;
   width: 100vw;
 }
@@ -185,7 +219,9 @@ code, pre { font-family: var(--font-mono); }
   border-radius: var(--radius-md);
   padding: 1.5rem;
   box-shadow: var(--shadow-md);
-  transition: border-color var(--transition-normal), transform var(--transition-normal);
+  transition:
+    border-color var(--transition-normal),
+    transform var(--transition-normal);
 }
 
 .glass-panel:hover {
@@ -327,18 +363,28 @@ code, pre { font-family: var(--font-mono); }
 }
 
 /* Syntax Highlighting Tokens */
-.token-opcode { color: #818CF8; font-weight: 600; }
-.token-register { color: #F472B6; }
-.token-immediate { color: #34D399; }
-.token-comment { color: var(--text-disabled); font-style: italic; }
+.token-opcode {
+  color: #818cf8;
+  font-weight: 600;
+}
+.token-register {
+  color: #f472b6;
+}
+.token-immediate {
+  color: #34d399;
+}
+.token-comment {
+  color: var(--text-disabled);
+  font-style: italic;
+}
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
   .app-container {
     grid-template-columns: 1fr;
     grid-template-areas:
-      "header"
-      "main";
+      'header'
+      'main';
   }
   .sidebar {
     display: none; /* In a real app this would adapt to a drawer */

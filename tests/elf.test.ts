@@ -129,7 +129,9 @@ describe('ELF Parser Unit Tests', () => {
     bytes[3] = 0x46;
     bytes[4] = 3; // Invalid class (only 1 and 2 are valid)
 
-    expect(() => parseElf(buffer)).toThrow('Unsupported or unknown ELF class: 3');
+    expect(() => parseElf(buffer)).toThrow(
+      'Unsupported or unknown ELF class: 3'
+    );
   });
 
   it('should throw an error for unsupported/unknown endianness', () => {
@@ -142,6 +144,8 @@ describe('ELF Parser Unit Tests', () => {
     bytes[4] = 2; // 64-bit
     bytes[5] = 3; // Invalid endianness (only 1 and 2 are valid)
 
-    expect(() => parseElf(buffer)).toThrow('Unsupported or unknown endianness: 3');
+    expect(() => parseElf(buffer)).toThrow(
+      'Unsupported or unknown endianness: 3'
+    );
   });
 });

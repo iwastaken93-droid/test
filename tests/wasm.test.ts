@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseWasm, ValueType, ExportKind, SectionId } from '../src/parser/wasm';
+import {
+  parseWasm,
+  ValueType,
+  ExportKind,
+  SectionId,
+} from '../src/parser/wasm';
 
 // Helper functions to generate binary WASM structures for testing
 function encodeVarUint(val: number): number[] {
@@ -24,7 +29,10 @@ function encodeVarInt(val: number): number[] {
   while (true) {
     const byte = temp & 0x7f;
     temp >>= 7;
-    if ((temp === 0 && (byte & 0x40) === 0) || (temp === -1 && (byte & 0x40) !== 0)) {
+    if (
+      (temp === 0 && (byte & 0x40) === 0) ||
+      (temp === -1 && (byte & 0x40) !== 0)
+    ) {
       bytes.push(byte);
       break;
     } else {
@@ -41,14 +49,24 @@ function encodeString(str: string): number[] {
 
 describe('WASM Parser Unit Tests', () => {
   it('should throw an error for invalid magic header', () => {
-    const invalidBytes = new Uint8Array([0x01, 0x02, 0x03, 0x04, 0x01, 0x00, 0x00, 0x00]);
-    expect(() => parseWasm(invalidBytes)).toThrow(/Invalid WebAssembly magic number/);
+    const invalidBytes = new Uint8Array([
+      0x01, 0x02, 0x03, 0x04, 0x01, 0x00, 0x00, 0x00,
+    ]);
+    expect(() => parseWasm(invalidBytes)).toThrow(
+      /Invalid WebAssembly magic number/
+    );
   });
 
   it('should successfully parse a valid WASM header with no sections', () => {
     const emptyWasm = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d, // Magic: "\0asm"
-      0x01, 0x00, 0x00, 0x00  // Version: 1
+      0x00,
+      0x61,
+      0x73,
+      0x6d, // Magic: "\0asm"
+      0x01,
+      0x00,
+      0x00,
+      0x00, // Version: 1
     ]);
     const module = parseWasm(emptyWasm);
     expect(module.magic).toEqual([0x00, 0x61, 0x73, 0x6d]);
@@ -67,12 +85,18 @@ describe('WASM Parser Unit Tests', () => {
     const sectionLength = nameBytes.length + customPayload.length;
 
     const wasmBytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d,
-      0x01, 0x00, 0x00, 0x00,
+      0x00,
+      0x61,
+      0x73,
+      0x6d,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
       SectionId.Custom,
       ...encodeVarUint(sectionLength),
       ...nameBytes,
-      ...customPayload
+      ...customPayload,
     ]);
 
     const module = parseWasm(wasmBytes);
@@ -85,12 +109,12 @@ describe('WASM Parser Unit Tests', () => {
     // 1. Type Section: 1 function type: (i32, i32) -> i32
     const typePayload = [
       ...encodeVarUint(1), // number of types
-      0x60,               // type form (func)
+      0x60, // type form (func)
       ...encodeVarUint(2), // param count
       ValueType.I32,
       ValueType.I32,
       ...encodeVarUint(1), // result count
-      ValueType.I32
+      ValueType.I32,
     ];
 
     // 2. Import Section: import "env" "print" as func index 0 (using type index 0)
@@ -99,13 +123,13 @@ describe('WASM Parser Unit Tests', () => {
       ...encodeString('env'),
       ...encodeString('print'),
       ExportKind.Func,
-      ...encodeVarUint(0)  // type index
+      ...encodeVarUint(0), // type index
     ];
 
     // 3. Function Section: defines 1 function using type index 0 (this will be func index 1 since import is 0)
     const funcPayload = [
       ...encodeVarUint(1), // number of functions
-      ...encodeVarUint(0)  // type index 0
+      ...encodeVarUint(0), // type index 0
     ];
 
     // 4. Export Section: export function index 1 as "add"
@@ -113,7 +137,7 @@ describe('WASM Parser Unit Tests', () => {
       ...encodeVarUint(1), // number of exports
       ...encodeString('add'),
       ExportKind.Func,
-      ...encodeVarUint(1)  // function index 1
+      ...encodeVarUint(1), // function index 1
     ];
 
     // 5. Code Section: body for function 1
@@ -121,29 +145,37 @@ describe('WASM Parser Unit Tests', () => {
     const locals = [
       ...encodeVarUint(1), // number of local declarations
       ...encodeVarUint(1), // count of locals in this decl
-      ValueType.I32        // type
+      ValueType.I32, // type
     ];
 
     // Instructions: local.get 0, local.get 1, i32.add, end (0x0b)
     const instructions = [
-      0x20, ...encodeVarUint(0), // local.get 0
-      0x20, ...encodeVarUint(1), // local.get 1
-      0x6a,                      // i32.add
-      0x0b                       // end
+      0x20,
+      ...encodeVarUint(0), // local.get 0
+      0x20,
+      ...encodeVarUint(1), // local.get 1
+      0x6a, // i32.add
+      0x0b, // end
     ];
 
     const funcBody = [...locals, ...instructions];
     const codePayload = [
       ...encodeVarUint(1), // number of code bodies
       ...encodeVarUint(funcBody.length),
-      ...funcBody
+      ...funcBody,
     ];
 
     // Combine all sections
     const wasmBytes = new Uint8Array([
-      0x00, 0x61, 0x73, 0x6d,
-      0x01, 0x00, 0x00, 0x00,
-      
+      0x00,
+      0x61,
+      0x73,
+      0x6d,
+      0x01,
+      0x00,
+      0x00,
+      0x00,
+
       SectionId.Type,
       ...encodeVarUint(typePayload.length),
       ...typePayload,
@@ -162,7 +194,7 @@ describe('WASM Parser Unit Tests', () => {
 
       SectionId.Code,
       ...encodeVarUint(codePayload.length),
-      ...codePayload
+      ...codePayload,
     ]);
 
     const module = parseWasm(wasmBytes);
@@ -197,7 +229,7 @@ describe('WASM Parser Unit Tests', () => {
 
     const parsedInstructions = module.code[0].instructions;
     expect(parsedInstructions).toHaveLength(4);
-    
+
     expect(parsedInstructions[0].mnemonic).toBe('local.get');
     expect(parsedInstructions[0].args).toBe(0);
 

@@ -123,12 +123,15 @@ export class PEParser {
   public parse(): ParsedPE {
     // 1. DOS Header
     if (this.view.byteLength < 64) {
-      throw new Error("File too small to contain a valid DOS header");
+      throw new Error('File too small to contain a valid DOS header');
     }
 
-    const mzMagic = String.fromCharCode(this.view.getUint8(0), this.view.getUint8(1));
-    if (mzMagic !== "MZ") {
-      throw new Error("Invalid DOS MZ header signature");
+    const mzMagic = String.fromCharCode(
+      this.view.getUint8(0),
+      this.view.getUint8(1)
+    );
+    if (mzMagic !== 'MZ') {
+      throw new Error('Invalid DOS MZ header signature');
     }
 
     const e_lfanew = this.view.getUint32(60, true);
@@ -136,18 +139,19 @@ export class PEParser {
 
     // 2. PE Signature
     if (e_lfanew + 4 > this.view.byteLength) {
-      throw new Error("PE header offset points outside of file limits");
+      throw new Error('PE header offset points outside of file limits');
     }
 
     const peSig = this.view.getUint32(e_lfanew, true);
-    if (peSig !== 0x00004550) { // "PE\0\0"
-      throw new Error("Invalid PE signature");
+    if (peSig !== 0x00004550) {
+      // "PE\0\0"
+      throw new Error('Invalid PE signature');
     }
 
     // 3. COFF File Header
     const coffOffset = e_lfanew + 4;
     if (coffOffset + 20 > this.view.byteLength) {
-      throw new Error("COFF file header points outside of file limits");
+      throw new Error('COFF file header points outside of file limits');
     }
 
     const coffHeader: CoffHeader = {
@@ -163,13 +167,15 @@ export class PEParser {
     // 4. Optional Header
     const optionalOffset = coffOffset + 20;
     if (optionalOffset + 2 > this.view.byteLength) {
-      throw new Error("Optional header magic points outside of file limits");
+      throw new Error('Optional header magic points outside of file limits');
     }
 
     const magic = this.view.getUint16(optionalOffset, true);
     const is32Bit = magic === 0x10b; // PE32: 0x10b, PE32+: 0x20b
     if (magic !== 0x10b && magic !== 0x20b) {
-      throw new Error(`Unsupported PE optional header magic: 0x${magic.toString(16)}`);
+      throw new Error(
+        `Unsupported PE optional header magic: 0x${magic.toString(16)}`
+      );
     }
 
     // Parse Standard Fields
@@ -177,7 +183,10 @@ export class PEParser {
     const minorLinkerVersion = this.view.getUint8(optionalOffset + 3);
     const sizeOfCode = this.view.getUint32(optionalOffset + 4, true);
     const sizeOfInitializedData = this.view.getUint32(optionalOffset + 8, true);
-    const sizeOfUninitializedData = this.view.getUint32(optionalOffset + 12, true);
+    const sizeOfUninitializedData = this.view.getUint32(
+      optionalOffset + 12,
+      true
+    );
     const addressOfEntryPoint = this.view.getUint32(optionalOffset + 16, true);
     const baseOfCode = this.view.getUint32(optionalOffset + 20, true);
 
@@ -201,8 +210,14 @@ export class PEParser {
 
     const sectionAlignment = this.view.getUint32(nextOffset, true);
     const fileAlignment = this.view.getUint32(nextOffset + 4, true);
-    const majorOperatingSystemVersion = this.view.getUint16(nextOffset + 8, true);
-    const minorOperatingSystemVersion = this.view.getUint16(nextOffset + 10, true);
+    const majorOperatingSystemVersion = this.view.getUint16(
+      nextOffset + 8,
+      true
+    );
+    const minorOperatingSystemVersion = this.view.getUint16(
+      nextOffset + 10,
+      true
+    );
     const majorImageVersion = this.view.getUint16(nextOffset + 12, true);
     const minorImageVersion = this.view.getUint16(nextOffset + 14, true);
     const majorSubsystemVersion = this.view.getUint16(nextOffset + 16, true);
@@ -287,7 +302,8 @@ export class PEParser {
 
     // 5. Section Headers
     // Offset of section headers starts immediately after the optional header
-    const sectionHeadersOffset = optionalOffset + coffHeader.sizeOfOptionalHeader;
+    const sectionHeadersOffset =
+      optionalOffset + coffHeader.sizeOfOptionalHeader;
     const sections: SectionHeader[] = [];
 
     for (let i = 0; i < coffHeader.numberOfSections; i++) {
@@ -321,7 +337,12 @@ export class PEParser {
     // Helpers for RVA to Offset translation
     const rvaToOffset = (rva: number): number => {
       for (const section of sections) {
-        if (rva >= section.virtualAddress && rva < section.virtualAddress + Math.max(section.virtualSize, section.sizeOfRawData)) {
+        if (
+          rva >= section.virtualAddress &&
+          rva <
+            section.virtualAddress +
+              Math.max(section.virtualSize, section.sizeOfRawData)
+        ) {
           return rva - section.virtualAddress + section.pointerToRawData;
         }
       }
@@ -345,20 +366,32 @@ export class PEParser {
       const exportDirRva = dataDirectories[0].virtualAddress;
       const exportDirOffset = rvaToOffset(exportDirRva);
 
-      if (exportDirOffset !== 0 && exportDirOffset + 40 <= this.view.byteLength) {
+      if (
+        exportDirOffset !== 0 &&
+        exportDirOffset + 40 <= this.view.byteLength
+      ) {
         const characteristics = this.view.getUint32(exportDirOffset, true);
         const timeDateStamp = this.view.getUint32(exportDirOffset + 4, true);
         const majorVersion = this.view.getUint16(exportDirOffset + 8, true);
         const minorVersion = this.view.getUint16(exportDirOffset + 10, true);
         const nameRva = this.view.getUint32(exportDirOffset + 12, true);
         const ordinalBase = this.view.getUint32(exportDirOffset + 16, true);
-        const numberOfFunctions = this.view.getUint32(exportDirOffset + 20, true);
+        const numberOfFunctions = this.view.getUint32(
+          exportDirOffset + 20,
+          true
+        );
         const numberOfNames = this.view.getUint32(exportDirOffset + 24, true);
-        const addressOfFunctions = this.view.getUint32(exportDirOffset + 28, true);
+        const addressOfFunctions = this.view.getUint32(
+          exportDirOffset + 28,
+          true
+        );
         const addressOfNames = this.view.getUint32(exportDirOffset + 32, true);
-        const addressOfNameOrdinals = this.view.getUint32(exportDirOffset + 36, true);
+        const addressOfNameOrdinals = this.view.getUint32(
+          exportDirOffset + 36,
+          true
+        );
 
-        const dllName = nameRva ? readString(rvaToOffset(nameRva)) : "";
+        const dllName = nameRva ? readString(rvaToOffset(nameRva)) : '';
 
         const funcOffset = rvaToOffset(addressOfFunctions);
         const nameTableOffset = rvaToOffset(addressOfNames);
@@ -395,11 +428,21 @@ export class PEParser {
         // Map names to ordinals/functions
         if (nameTableOffset !== 0 && ordinalTableOffset !== 0) {
           for (let i = 0; i < numberOfNames; i++) {
-            const nameStringRva = this.view.getUint32(nameTableOffset + i * 4, true);
-            const ordinalIdx = this.view.getUint16(ordinalTableOffset + i * 2, true);
+            const nameStringRva = this.view.getUint32(
+              nameTableOffset + i * 4,
+              true
+            );
+            const ordinalIdx = this.view.getUint16(
+              ordinalTableOffset + i * 2,
+              true
+            );
 
-            const nameStr = nameStringRva ? readString(rvaToOffset(nameStringRva)) : "";
-            const entry = exportList.find(e => e.ordinal === ordinalBase + ordinalIdx);
+            const nameStr = nameStringRva
+              ? readString(rvaToOffset(nameStringRva))
+              : '';
+            const entry = exportList.find(
+              (e) => e.ordinal === ordinalBase + ordinalIdx
+            );
             if (entry) {
               entry.name = nameStr;
             }
@@ -439,7 +482,8 @@ export class PEParser {
           const importEntries: ImportEntry[] = [];
 
           // Use ILT (OriginalFirstThunk) or fallback to IAT (FirstThunk)
-          const thunkRva = originalFirstThunk !== 0 ? originalFirstThunk : firstThunk;
+          const thunkRva =
+            originalFirstThunk !== 0 ? originalFirstThunk : firstThunk;
           let thunkOffset = rvaToOffset(thunkRva);
 
           if (thunkOffset !== 0) {

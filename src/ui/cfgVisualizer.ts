@@ -1,5 +1,5 @@
-import { BasicBlock } from '../disassembler/cfg';
-import { Instruction } from '../disassembler/types';
+import { BasicBlock } from '../disassembler/cfg.js';
+import { Instruction } from '../disassembler/types.js';
 
 export interface CFGVisualizerOptions {
   layout?: 'layered' | 'sequential';
@@ -50,9 +50,16 @@ export class CFGVisualizer {
   private readonly horizontalGap = 60;
 
   // Cached positions
-  private blockPositions: Map<string, { x: number; y: number; width: number; height: number }> = new Map();
+  private blockPositions: Map<
+    string,
+    { x: number; y: number; width: number; height: number }
+  > = new Map();
 
-  constructor(container: HTMLElement, blocks: BasicBlock[], options: CFGVisualizerOptions = {}) {
+  constructor(
+    container: HTMLElement,
+    blocks: BasicBlock[],
+    options: CFGVisualizerOptions = {}
+  ) {
     this.container = container;
     this.blocks = blocks;
     this.options = options;
@@ -241,13 +248,29 @@ export class CFGVisualizer {
 
     // Setup CSS Variable overrides for theme
     const theme = this.options.theme || {};
-    if (theme.background) this.container.style.setProperty('--cfg-bg', theme.background);
-    if (theme.blockBg) this.container.style.setProperty('--cfg-block-bg', theme.blockBg);
-    if (theme.blockBorder) this.container.style.setProperty('--cfg-block-border', theme.blockBorder);
-    if (theme.blockHeaderBg) this.container.style.setProperty('--cfg-block-header-bg', theme.blockHeaderBg);
-    if (theme.blockTitleColor) this.container.style.setProperty('--cfg-block-title-color', theme.blockTitleColor);
-    if (theme.textColor) this.container.style.setProperty('--cfg-text-color', theme.textColor);
-    if (theme.selectedColor) this.container.style.setProperty('--cfg-selected-color', theme.selectedColor);
+    if (theme.background)
+      this.container.style.setProperty('--cfg-bg', theme.background);
+    if (theme.blockBg)
+      this.container.style.setProperty('--cfg-block-bg', theme.blockBg);
+    if (theme.blockBorder)
+      this.container.style.setProperty('--cfg-block-border', theme.blockBorder);
+    if (theme.blockHeaderBg)
+      this.container.style.setProperty(
+        '--cfg-block-header-bg',
+        theme.blockHeaderBg
+      );
+    if (theme.blockTitleColor)
+      this.container.style.setProperty(
+        '--cfg-block-title-color',
+        theme.blockTitleColor
+      );
+    if (theme.textColor)
+      this.container.style.setProperty('--cfg-text-color', theme.textColor);
+    if (theme.selectedColor)
+      this.container.style.setProperty(
+        '--cfg-selected-color',
+        theme.selectedColor
+      );
 
     // Create main SVG canvas
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -255,7 +278,7 @@ export class CFGVisualizer {
 
     // Create marker definitions for arrows
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    
+
     const trueColor = theme.trueBranchColor || '#10b981';
     const falseColor = theme.falseBranchColor || '#ef4444';
     const neutralColor = theme.neutralBranchColor || '#64748b';
@@ -268,12 +291,21 @@ export class CFGVisualizer {
     this.svg.appendChild(defs);
 
     // Create layers group
-    this.zoomGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    
-    this.edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this.zoomGroup = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'g'
+    );
+
+    this.edgesGroup = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'g'
+    );
     this.edgesGroup.setAttribute('class', 'cfg-edges');
-    
-    this.nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+    this.nodesGroup = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'g'
+    );
     this.nodesGroup.setAttribute('class', 'cfg-nodes');
 
     this.zoomGroup.appendChild(this.edgesGroup);
@@ -289,7 +321,10 @@ export class CFGVisualizer {
   }
 
   private createArrowMarker(id: string, color: string): SVGMarkerElement {
-    const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+    const marker = document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      'marker'
+    );
     marker.setAttribute('id', id);
     marker.setAttribute('viewBox', '0 0 10 10');
     marker.setAttribute('refX', '8');
@@ -301,7 +336,7 @@ export class CFGVisualizer {
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     path.setAttribute('d', 'M 0 1 L 10 5 L 0 9 z');
     path.setAttribute('fill', color);
-    
+
     marker.appendChild(path);
     return marker;
   }
@@ -312,10 +347,13 @@ export class CFGVisualizer {
 
     const btnLayout = document.createElement('button');
     btnLayout.className = 'cfg-btn';
-    btnLayout.textContent = this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
+    btnLayout.textContent =
+      this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
     btnLayout.onclick = () => {
-      this.currentLayout = this.currentLayout === 'layered' ? 'sequential' : 'layered';
-      btnLayout.textContent = this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
+      this.currentLayout =
+        this.currentLayout === 'layered' ? 'sequential' : 'layered';
+      btnLayout.textContent =
+        this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
       this.render();
       this.fitToScreen();
     };
@@ -346,7 +384,11 @@ export class CFGVisualizer {
    */
   private calculateBlockHeight(block: BasicBlock): number {
     const instCount = block.instructions.length;
-    return this.blockHeaderHeight + (instCount * this.instructionHeight) + this.blockPadding;
+    return (
+      this.blockHeaderHeight +
+      instCount * this.instructionHeight +
+      this.blockPadding
+    );
   }
 
   /**
@@ -366,7 +408,7 @@ export class CFGVisualizer {
           x: centerX,
           y: currentY,
           width: this.blockWidth,
-          height: height
+          height: height,
         });
         currentY += height + this.verticalGap;
       }
@@ -457,7 +499,7 @@ export class CFGVisualizer {
             x,
             y,
             width: this.blockWidth,
-            height
+            height,
           });
         });
       }
@@ -487,7 +529,10 @@ export class CFGVisualizer {
       if (!pos) continue;
 
       // Wrap in standard SVG foreignObject
-      const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+      const foreignObj = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'foreignObject'
+      );
       foreignObj.setAttribute('x', pos.x.toString());
       foreignObj.setAttribute('y', pos.y.toString());
       foreignObj.setAttribute('width', pos.width.toString());
@@ -505,7 +550,7 @@ export class CFGVisualizer {
       // Header
       const header = document.createElement('div');
       header.className = 'cfg-block-header';
-      
+
       const titleSpan = document.createElement('span');
       titleSpan.textContent = `0x${block.startAddress.toString(16)}`;
       header.appendChild(titleSpan);
@@ -560,7 +605,7 @@ export class CFGVisualizer {
 
       const isConditional = block.successors.length === 2;
 
-      block.successors.forEach((succId, index) => {
+      block.successors.forEach((succId: string, index: number) => {
         const toPos = this.blockPositions.get(succId);
         if (!toPos) return;
 
@@ -579,13 +624,24 @@ export class CFGVisualizer {
         }
 
         // Draw SVG Path
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('class', `cfg-edge edge-from-${block.id} edge-to-${succId}`);
+        const path = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'path'
+        );
+        path.setAttribute(
+          'class',
+          `cfg-edge edge-from-${block.id} edge-to-${succId}`
+        );
         path.setAttribute('stroke', color);
         path.setAttribute('marker-end', `url(#${markerId})`);
-        
+
         // Calculate curve path
-        const d = this.calculateEdgePath(fromPos, toPos, index, block.successors.length);
+        const d = this.calculateEdgePath(
+          fromPos,
+          toPos,
+          index,
+          block.successors.length
+        );
         path.setAttribute('d', d);
 
         this.edgesGroup.appendChild(path);
@@ -603,7 +659,7 @@ export class CFGVisualizer {
     totalSuccs: number
   ): string {
     const fromBottomY = from.y + from.height;
-    
+
     // Distribute source points along the bottom edge of the block
     let fromX = from.x + from.width / 2;
     if (totalSuccs > 1) {
@@ -625,10 +681,10 @@ export class CFGVisualizer {
     // Case 2: Same level or upward back-edge (loop)
     // Route from the side of the blocks
     const routeRight = toX >= fromX;
-    
+
     const fromSideX = routeRight ? from.x + from.width : from.x;
     const fromSideY = from.y + from.height * 0.5;
-    
+
     const toSideX = routeRight ? to.x + to.width : to.x;
     const toSideY = to.y + to.height * 0.5;
 
@@ -646,7 +702,7 @@ export class CFGVisualizer {
     // 1. Mouse wheel zoom centered on pointer
     this.svg.addEventListener('wheel', (e) => {
       e.preventDefault();
-      
+
       const rect = this.svg.getBoundingClientRect();
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
@@ -719,8 +775,10 @@ export class CFGVisualizer {
     this.selectedBlockId = blockId;
 
     // Update DOM card styles
-    this.blocks.forEach(b => {
-      const card = this.container.querySelector(`#node-${b.id} .cfg-block-card`);
+    this.blocks.forEach((b) => {
+      const card = this.container.querySelector(
+        `#node-${b.id} .cfg-block-card`
+      );
       if (card) {
         if (b.id === blockId) {
           card.classList.add('selected');
@@ -732,18 +790,18 @@ export class CFGVisualizer {
 
     // Update SVG Edge styles
     const allEdges = this.edgesGroup.querySelectorAll('.cfg-edge');
-    
+
     if (blockId === null) {
       // Reset all edges
-      allEdges.forEach(el => {
+      allEdges.forEach((el) => {
         el.classList.remove('dimmed', 'highlighted');
         el.setAttribute('stroke-width', '2px');
       });
     } else {
-      allEdges.forEach(el => {
+      allEdges.forEach((el) => {
         const isFrom = el.classList.contains(`edge-from-${blockId}`);
         const isTo = el.classList.contains(`edge-to-${blockId}`);
-        
+
         el.classList.remove('highlighted', 'dimmed');
         if (isFrom || isTo) {
           el.classList.add('highlighted');
@@ -787,13 +845,13 @@ export class CFGVisualizer {
 
     const scaleX = containerWidth / (graphWidth + padding * 2);
     const scaleY = containerHeight / (graphHeight + padding * 2);
-    
+
     this.zoomScale = Math.max(0.2, Math.min(1.2, Math.min(scaleX, scaleY)));
-    
+
     // Center alignment
     const midGraphX = minX + graphWidth / 2;
     const midGraphY = minY + graphHeight / 2;
-    
+
     this.panX = containerWidth / 2 - midGraphX * this.zoomScale;
     this.panY = containerHeight / 2 - midGraphY * this.zoomScale;
 

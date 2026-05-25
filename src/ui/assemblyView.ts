@@ -1,4 +1,4 @@
-import { Instruction } from '../disassembler/types';
+import { Instruction } from '../disassembler/types.js';
 
 export interface AssemblyViewOptions {
   theme?: {
@@ -26,7 +26,7 @@ export class AssemblyView {
   private instructionMap: Map<number, Instruction> = new Map();
   private instructionIndices: Map<number, number> = new Map();
   private options: AssemblyViewOptions;
-  
+
   // Custom comments storage
   private comments: Map<number, string> = new Map();
 
@@ -54,11 +54,15 @@ export class AssemblyView {
   // ResizeObserver to handle canvas resizing
   private resizeObserver: ResizeObserver | null = null;
 
-  constructor(container: HTMLElement, instructions: Instruction[], options: AssemblyViewOptions = {}) {
+  constructor(
+    container: HTMLElement,
+    instructions: Instruction[],
+    options: AssemblyViewOptions = {}
+  ) {
     this.container = container;
     this.options = options;
     this.setInstructions(instructions);
-    
+
     this.initLayout();
     this.setupEvents();
     this.scheduleRedraw();
@@ -94,8 +98,10 @@ export class AssemblyView {
     } else {
       this.comments.delete(address);
     }
-    
-    const commentEl = this.container.querySelector(`.row-comment[data-address="${address}"]`);
+
+    const commentEl = this.container.querySelector(
+      `.row-comment[data-address="${address}"]`
+    );
     if (commentEl) {
       commentEl.textContent = comment || '// ';
       if (comment) {
@@ -141,7 +147,11 @@ export class AssemblyView {
   public navigateToAddress(address: number, pushToHistory = true) {
     if (!this.instructionMap.has(address)) return;
 
-    if (pushToHistory && this.activeAddress !== null && this.activeAddress !== address) {
+    if (
+      pushToHistory &&
+      this.activeAddress !== null &&
+      this.activeAddress !== address
+    ) {
       this.historyStack.push(this.activeAddress);
       this.forwardStack = []; // Clear forward stack on new navigation
       this.updateHistoryButtons();
@@ -191,7 +201,7 @@ export class AssemblyView {
    */
   private initLayout() {
     this.container.innerHTML = '';
-    
+
     // Check and create style element if not already present
     if (!document.getElementById('assembly-viewer-styles')) {
       const style = document.createElement('style');
@@ -420,17 +430,39 @@ export class AssemblyView {
 
     // Apply custom themes via CSS variables
     const theme = this.options.theme || {};
-    if (theme.background) this.container.style.setProperty('--asm-bg', theme.background);
+    if (theme.background)
+      this.container.style.setProperty('--asm-bg', theme.background);
     if (theme.text) this.container.style.setProperty('--asm-text', theme.text);
-    if (theme.activeBg) this.container.style.setProperty('--asm-active-bg', theme.activeBg);
-    if (theme.hoverBg) this.container.style.setProperty('--asm-hover-bg', theme.hoverBg);
-    if (theme.commentColor) this.container.style.setProperty('--asm-comment-color', theme.commentColor);
-    if (theme.mnemonicColor) this.container.style.setProperty('--asm-mnemonic-color', theme.mnemonicColor);
-    if (theme.operandColor) this.container.style.setProperty('--asm-operand-color', theme.operandColor);
-    if (theme.addressColor) this.container.style.setProperty('--asm-address-color', theme.addressColor);
-    if (theme.bytesColor) this.container.style.setProperty('--asm-bytes-color', theme.bytesColor);
-    if (theme.headerBg) this.container.style.setProperty('--asm-header-bg', theme.headerBg);
-    if (theme.borderColor) this.container.style.setProperty('--asm-border', theme.borderColor);
+    if (theme.activeBg)
+      this.container.style.setProperty('--asm-active-bg', theme.activeBg);
+    if (theme.hoverBg)
+      this.container.style.setProperty('--asm-hover-bg', theme.hoverBg);
+    if (theme.commentColor)
+      this.container.style.setProperty(
+        '--asm-comment-color',
+        theme.commentColor
+      );
+    if (theme.mnemonicColor)
+      this.container.style.setProperty(
+        '--asm-mnemonic-color',
+        theme.mnemonicColor
+      );
+    if (theme.operandColor)
+      this.container.style.setProperty(
+        '--asm-operand-color',
+        theme.operandColor
+      );
+    if (theme.addressColor)
+      this.container.style.setProperty(
+        '--asm-address-color',
+        theme.addressColor
+      );
+    if (theme.bytesColor)
+      this.container.style.setProperty('--asm-bytes-color', theme.bytesColor);
+    if (theme.headerBg)
+      this.container.style.setProperty('--asm-header-bg', theme.headerBg);
+    if (theme.borderColor)
+      this.container.style.setProperty('--asm-border', theme.borderColor);
 
     this.rootEl = document.createElement('div');
     this.rootEl.className = 'assembly-viewer-root';
@@ -519,7 +551,7 @@ export class AssemblyView {
       const bytesCol = document.createElement('div');
       bytesCol.className = 'row-bytes';
       bytesCol.textContent = Array.from(inst.bytes)
-        .map((b) => b.toString(16).toUpperCase().padStart(2, '0'))
+        .map((b: any) => b.toString(16).toUpperCase().padStart(2, '0'))
         .join(' ');
       bytesCol.title = bytesCol.textContent;
 
@@ -567,7 +599,7 @@ export class AssemblyView {
    */
   private getMnemonicCategoryClass(mnemonic: string): string {
     const m = mnemonic.toLowerCase();
-    
+
     // Control Flow
     if (/^(jmp|je|jne|jg|jl|ja|jb|j[a-z]{1,3}|call|ret|syscall|int)$/.test(m)) {
       return 'mnemonic-control';
@@ -584,7 +616,7 @@ export class AssemblyView {
     if (/^(mov|lea|push|pop|movsx|movzx|cld|std)$/.test(m)) {
       return 'mnemonic-memory';
     }
-    
+
     return '';
   }
 
@@ -596,7 +628,7 @@ export class AssemblyView {
     // Check imm values in instruction operands
     const targetImmAddresses: number[] = [];
     if (inst.operands) {
-      inst.operands.forEach(op => {
+      inst.operands.forEach((op: any) => {
         if (op.type === 'imm' && op.imm !== undefined) {
           const val = typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
           if (this.instructionMap.has(val)) {
@@ -636,16 +668,16 @@ export class AssemblyView {
 
     // Simple parser: split string by the numeric values to insert links
     // To make it robust, replace target addresses with link elements
-    targetImmAddresses.forEach(addr => {
+    targetImmAddresses.forEach((addr) => {
       const hexStr = `0x${addr.toString(16)}`;
       const decStr = addr.toString();
-      
+
       const replaceToken = (token: string) => {
         const parts = renderedText.split(token);
         if (parts.length > 1) {
           // Rebuild HTML fragment
           const fragment = document.createDocumentFragment();
-          parts.forEach((part, idx) => {
+          parts.forEach((part: string, idx: number) => {
             if (part) fragment.appendChild(document.createTextNode(part));
             if (idx < parts.length - 1) {
               const link = document.createElement('span');
@@ -683,7 +715,7 @@ export class AssemblyView {
     // 1. Row selection & clicks
     this.listEl.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
-      
+
       // Check if clicking a branch link
       const branchLink = target.closest('.branch-link') as HTMLElement;
       if (branchLink && branchLink.dataset.target) {
@@ -757,10 +789,10 @@ export class AssemblyView {
 
       // Find if we clicked near any vertical line
       const jumps = this.getVisibleJumps();
-      let clickedJump: typeof jumps[0] | null = null;
+      let clickedJump: (typeof jumps)[0] | null = null;
       let minDistance = 6;
 
-      jumps.forEach(j => {
+      jumps.forEach((j) => {
         const laneX = j.laneX;
         const startY = Math.min(j.ySource, j.yTarget);
         const endY = Math.max(j.ySource, j.yTarget);
@@ -775,7 +807,7 @@ export class AssemblyView {
       });
 
       if (clickedJump) {
-        const jump: typeof jumps[0] = clickedJump;
+        const jump: (typeof jumps)[0] = clickedJump;
         this.navigateToAddress(jump.target);
       }
     });
@@ -786,10 +818,10 @@ export class AssemblyView {
       const hoverX = e.clientX - rect.left;
 
       const jumps = this.getVisibleJumps();
-      let activeJump: typeof jumps[0] | null = null;
+      let activeJump: (typeof jumps)[0] | null = null;
       let minDistance = 6;
 
-      jumps.forEach(j => {
+      jumps.forEach((j) => {
         const laneX = j.laneX;
         const startY = Math.min(j.ySource, j.yTarget);
         const endY = Math.max(j.ySource, j.yTarget);
@@ -804,8 +836,12 @@ export class AssemblyView {
       });
 
       if (activeJump) {
-        const jump: typeof jumps[0] = activeJump;
-        if (!this.hoveredJumpLine || this.hoveredJumpLine.source !== jump.source || this.hoveredJumpLine.target !== jump.target) {
+        const jump: (typeof jumps)[0] = activeJump;
+        if (
+          !this.hoveredJumpLine ||
+          this.hoveredJumpLine.source !== jump.source ||
+          this.hoveredJumpLine.target !== jump.target
+        ) {
           this.hoveredJumpLine = { source: jump.source, target: jump.target };
           this.canvasEl.title = `Jump from 0x${jump.source.toString(16).toUpperCase()} to 0x${jump.target.toString(16).toUpperCase()}`;
           this.drawJumpArrows();
@@ -897,7 +933,7 @@ export class AssemblyView {
     if (!row) return;
 
     row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    
+
     // Add brief pulse highlight effect
     row.style.transition = 'none';
     row.style.backgroundColor = 'rgba(56, 189, 248, 0.4)';
@@ -912,26 +948,28 @@ export class AssemblyView {
    */
   private updateHoverJumpLine() {
     let hoveredJump: { source: number; target: number } | null = null;
+    const hexPattern = /0x([0-9a-fA-F]+)/;
 
     if (this.hoverAddress !== null) {
       const inst = this.instructionMap.get(this.hoverAddress);
       if (inst) {
         // Is this a jump instruction?
-        const isJump = this.getMnemonicCategoryClass(inst.mnemonic) === 'mnemonic-control';
+        const isJump =
+          this.getMnemonicCategoryClass(inst.mnemonic) === 'mnemonic-control';
         if (isJump) {
           // Find target address
           const targets: number[] = [];
-          
+
           if (inst.operands) {
-            inst.operands.forEach(op => {
+            inst.operands.forEach((op: any) => {
               if (op.type === 'imm' && op.imm !== undefined) {
-                const val = typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
+                const val =
+                  typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
                 if (this.instructionMap.has(val)) targets.push(val);
               }
             });
           }
 
-          const hexPattern = /0x([0-9a-fA-F]+)/;
           const match = hexPattern.exec(inst.opStr);
           if (match) {
             const val = parseInt(match[1], 16);
@@ -946,24 +984,30 @@ export class AssemblyView {
           // Find any jump pointing here
           for (let i = 0; i < this.instructions.length; i++) {
             const potentialJump = this.instructions[i];
-            const isControl = this.getMnemonicCategoryClass(potentialJump.mnemonic) === 'mnemonic-control';
+            const isControl =
+              this.getMnemonicCategoryClass(potentialJump.mnemonic) ===
+              'mnemonic-control';
             if (isControl) {
               let matchTarget = false;
               if (potentialJump.operands) {
-                potentialJump.operands.forEach(op => {
+                potentialJump.operands.forEach((op: any) => {
                   if (op.type === 'imm' && op.imm !== undefined) {
-                    const val = typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
+                    const val =
+                      typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
                     if (val === this.hoverAddress) matchTarget = true;
                   }
                 });
               }
-              const hexMatch = hexPattern.exec(potentialJump.opStr);
+              const hexMatch = /0x([0-9a-fA-F]+)/.exec(potentialJump.opStr);
               if (hexMatch && parseInt(hexMatch[1], 16) === this.hoverAddress) {
                 matchTarget = true;
               }
 
               if (matchTarget) {
-                hoveredJump = { source: potentialJump.address, target: this.hoverAddress };
+                hoveredJump = {
+                  source: potentialJump.address,
+                  target: this.hoverAddress,
+                };
                 break;
               }
             }
@@ -989,7 +1033,7 @@ export class AssemblyView {
   private getVisibleJumps() {
     const containerRect = this.canvasContainerEl.getBoundingClientRect();
     const listRect = this.listEl.getBoundingClientRect();
-    
+
     // Find all jump pairs with valid source and target row elements
     const jumps: Array<{
       source: number;
@@ -1003,14 +1047,15 @@ export class AssemblyView {
     }> = [];
 
     this.instructions.forEach((inst) => {
-      const isControl = this.getMnemonicCategoryClass(inst.mnemonic) === 'mnemonic-control';
+      const isControl =
+        this.getMnemonicCategoryClass(inst.mnemonic) === 'mnemonic-control';
       if (!isControl) return;
 
       let targetAddress: number | null = null;
 
       // Extract target address
       if (inst.operands) {
-        inst.operands.forEach(op => {
+        inst.operands.forEach((op: any) => {
           if (op.type === 'imm' && op.imm !== undefined) {
             const val = typeof op.imm === 'bigint' ? Number(op.imm) : op.imm;
             if (this.instructionMap.has(val)) targetAddress = val;
@@ -1037,8 +1082,8 @@ export class AssemblyView {
         const tRect = targetRow.getBoundingClientRect();
 
         // Compute Y offsets relative to the canvas container top
-        const ySource = (sRect.top + sRect.height / 2) - containerRect.top;
-        const yTarget = (tRect.top + tRect.height / 2) - containerRect.top;
+        const ySource = sRect.top + sRect.height / 2 - containerRect.top;
+        const yTarget = tRect.top + tRect.height / 2 - containerRect.top;
 
         const sourceIndex = this.instructionIndices.get(inst.address)!;
         const targetIndex = this.instructionIndices.get(targetAddress)!;
@@ -1054,7 +1099,7 @@ export class AssemblyView {
           span,
           isConditional,
           laneIndex: -1,
-          laneX: 0
+          laneX: 0,
         });
       }
     });
@@ -1065,7 +1110,7 @@ export class AssemblyView {
     // Assign lanes to prevent overlapping vertical lines
     const activeLanes: Array<{ startY: number; endY: number }[]> = [];
 
-    jumps.forEach(j => {
+    jumps.forEach((j) => {
       const startY = Math.min(j.ySource, j.yTarget);
       const endY = Math.max(j.ySource, j.yTarget);
 
@@ -1077,7 +1122,7 @@ export class AssemblyView {
         }
 
         // Check for overlap in this lane
-        const overlaps = activeLanes[assignedLane].some(laneSpan => {
+        const overlaps = activeLanes[assignedLane].some((laneSpan) => {
           return !(endY < laneSpan.startY || startY > laneSpan.endY);
         });
 
@@ -1095,8 +1140,8 @@ export class AssemblyView {
     // The lanes will distribute from X=12px to X=52px.
     const laneWidth = 8;
     const maxLanes = activeLanes.length;
-    
-    jumps.forEach(j => {
+
+    jumps.forEach((j) => {
       // Space lanes out. If there are few lanes, space them wider.
       const spacing = Math.min(laneWidth, 45 / Math.max(maxLanes, 1));
       j.laneX = 12 + j.laneIndex * spacing;
@@ -1121,12 +1166,14 @@ export class AssemblyView {
     const jumps = this.getVisibleJumps();
     const rightBoundary = 60; // where row starts
 
-    jumps.forEach(j => {
-      const isHovered = this.hoveredJumpLine && 
-                        this.hoveredJumpLine.source === j.source && 
-                        this.hoveredJumpLine.target === j.target;
-      
-      const isActive = this.activeAddress === j.source || this.activeAddress === j.target;
+    jumps.forEach((j) => {
+      const isHovered =
+        this.hoveredJumpLine &&
+        this.hoveredJumpLine.source === j.source &&
+        this.hoveredJumpLine.target === j.target;
+
+      const isActive =
+        this.activeAddress === j.source || this.activeAddress === j.target;
 
       // Color selection
       let strokeStyle = '#334155'; // default muted line
@@ -1136,10 +1183,14 @@ export class AssemblyView {
         strokeStyle = j.isConditional ? '#10b981' : '#38bdf8'; // condition (green) vs unconditional (blue)
         lineWidth = 2.0;
       } else if (isActive) {
-        strokeStyle = j.isConditional ? 'rgba(16, 185, 129, 0.7)' : 'rgba(56, 189, 248, 0.7)';
+        strokeStyle = j.isConditional
+          ? 'rgba(16, 185, 129, 0.7)'
+          : 'rgba(56, 189, 248, 0.7)';
         lineWidth = 1.6;
       } else {
-        strokeStyle = j.isConditional ? 'rgba(16, 185, 129, 0.3)' : 'rgba(56, 189, 248, 0.3)';
+        strokeStyle = j.isConditional
+          ? 'rgba(16, 185, 129, 0.3)'
+          : 'rgba(56, 189, 248, 0.3)';
       }
 
       ctx.strokeStyle = strokeStyle;

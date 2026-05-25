@@ -1,15 +1,22 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
+import { defineConfig } from 'vitest/config';
+import * as path from 'path';
 
-// https://vitejs.dev/config/
 export default defineConfig({
+  root: 'src',
   server: {
     port: 5173,
     host: true,
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, './src'),
+      '@': path.resolve(__dirname, './src'),
     },
+  },
+  build: {
+    outDir: '../dist',
+    emptyOutDir: true,
+  },
+  test: {
+    include: ['../tests/**/*.test.ts', '**/*.test.ts'],
   },
 });
