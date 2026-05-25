@@ -1,5 +1,27 @@
 # Devlog
 
+## [2026-05-25 22:52:00+10:00] Setup ESLint for TypeScript
+- Installed `eslint` and `typescript-eslint` using `pnpm`.
+- Created [eslint.config.js](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/eslint.config.js) to set up basic linting rules for TypeScript files.
+
+## [2026-05-25 22:59:00+10:00] Final Project Completion & Verification
+- **Summary**: Successfully finalized all developmental phases, verified compilation/typechecking, built production assets, and ran unit tests.
+- **Phases Finalized**:
+  - **Phase 1: Binary Parsing**: Completed ELF, PE, and WASM binary parsers that read headers, sections, exports, and instructions.
+  - **Phase 2: Disassembly & Routing**: Completed multi-architecture disassembly router (x86_64, ARM, WASM) with auto-detection signatures.
+  - **Phase 3: Interactive Decompilation**: Implemented Control Flow Graph generation, dominator tree analysis, loop detection, and structuring.
+  - **Phase 4: Modern Web UI**: Created high-fidelity UI featuring Canvas-based Assembly View, Interactive CFG Visualizer, Hex Viewer, Tabbed Panes, and Theme Control.
+  - **Phase 5: Verification & Quality Assurance**: Configured Prettier code formatting, TypeScript typechecking, Vitest tests, and GitHub Actions CI workflow.
+- **Build & Verification Status**:
+  - **Vitest Unit Tests**: **Passed 17 / 17 tests** across 4 test suites ([elf.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/elf.test.ts), [pe.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/pe.test.ts), [wasm.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/wasm.test.ts), [decompiler.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/decompiler.test.ts)).
+  - **Typecheck**: Successfully ran `tsc --noEmit` with zero errors.
+  - **Production Build**: Ran `vite build` successfully producing optimized artifacts in `dist/`.
+- **Created Components Count**:
+  - **3 Binary Parsers**: [elf.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/parser/elf.ts), [pe.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/parser/pe.ts), [wasm.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/parser/wasm.ts).
+  - **4 Disassembler/Analysis Modules**: [cfg.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/disassembler/cfg.ts), [decompiler.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/disassembler/decompiler.ts), [router.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/disassembler/router.ts), [types.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/disassembler/types.ts).
+  - **3 UI Components**: [assemblyView.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/assemblyView.ts), [cfgVisualizer.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/cfgVisualizer.ts), [hexViewer.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/hexViewer.ts).
+  - **1 Layout Orchestrator**: [main.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/main.ts).
+
 ## [2026-05-25 22:57:00+10:00] Formatted Test Files with Prettier
 - Ran Prettier to format and check all files under the [tests/](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/) directory to ensure consistent styling:
   - [decompiler.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/decompiler.test.ts)
