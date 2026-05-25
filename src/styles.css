@@ -1,0 +1,346 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* ==========================================
+   DESIGN SYSTEM CUSTOM PROPERTIES
+   ========================================== */
+:root {
+  /* Typography */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+
+  /* Color Palette */
+  --bg-primary: #0F1115;
+  --bg-secondary: #161A21;
+  --bg-tertiary: #1F242E;
+  
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.16);
+  
+  /* Text Colors */
+  --text-primary: #F8FAFC;
+  --text-secondary: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-disabled: #475569;
+  
+  /* Brand & Status Colors */
+  --accent-start: #6366F1;
+  --accent-end: #8B5CF6;
+  --success: #10B981;
+  --success-glow: rgba(16, 185, 129, 0.15);
+  --error: #EF4444;
+  --warning: #F59E0B;
+  
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+  --gradient-accent-hover: linear-gradient(135deg, #4F46E5, #7C3AED);
+  --gradient-dark: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
+  --gradient-glow: radial-gradient(circle at top left, rgba(99, 102, 241, 0.15), transparent 60%);
+
+  /* Layout and Sizing */
+  --sidebar-width: 280px;
+  --header-height: 70px;
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 16px 48px -8px rgba(0, 0, 0, 0.8);
+  
+  /* Transitions */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ==========================================
+   BASE & RESET
+   ========================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-color: var(--bg-primary);
+  background-image: var(--gradient-glow);
+  background-attachment: fixed;
+}
+
+/* Typography elements */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+}
+
+h1 { font-size: 2.25rem; }
+h2 { font-size: 1.75rem; }
+h3 { font-size: 1.35rem; }
+p { color: var(--text-secondary); }
+code, pre { font-family: var(--font-mono); }
+
+/* ==========================================
+   CUSTOM SCROLLBARS
+   ========================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--bg-primary);
+  transition: var(--transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* ==========================================
+   LAYOUT GRID & CONTAINER
+   ========================================== */
+.app-container {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  grid-template-rows: var(--header-height) 1fr;
+  grid-template-areas:
+    "sidebar header"
+    "sidebar main";
+  min-height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar Blur / Glassmorphism */
+.sidebar {
+  grid-area: sidebar;
+  background: rgba(22, 26, 33, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-right: 1px solid var(--border-color);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  z-index: 10;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.header {
+  grid-area: header;
+  background: rgba(15, 17, 21, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  z-index: 9;
+}
+
+.main-content {
+  grid-area: main;
+  padding: 2rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ==========================================
+   COMPONENTS & UI ELEMENTS
+   ========================================== */
+
+/* Glassmorphic Panel Card */
+.glass-panel {
+  background: rgba(22, 26, 33, 0.45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  transition: border-color var(--transition-normal), transform var(--transition-normal);
+}
+
+.glass-panel:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+}
+
+/* Buttons and Micro-animations */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--gradient-accent);
+  color: var(--text-primary);
+  box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.4);
+}
+
+.btn-primary:hover {
+  background: var(--gradient-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.6);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* Status Indicators */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-success {
+  background: var(--success-glow);
+  color: var(--success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Navigation Link States */
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+  transform: translateX(4px);
+}
+
+.nav-link.active {
+  color: var(--text-primary);
+  background: rgba(99, 102, 241, 0.15);
+  border-left: 3px solid var(--accent-start);
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+/* ==========================================
+   VIRTUAL LIST & CODE VIEW
+   ========================================== */
+.virtual-list-container {
+  height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  position: relative;
+  contain: layout size;
+}
+
+/* Row elements inside virtual list */
+.virtual-row {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  height: 40px; /* fixed height for virtual indexing mapping */
+  box-sizing: border-box;
+  transition: background-color var(--transition-fast);
+}
+
+.virtual-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.line-number {
+  color: var(--text-disabled);
+  text-align: right;
+  width: 50px;
+  padding-right: 1.25rem;
+  user-select: none;
+  border-right: 1px solid var(--border-color);
+  margin-right: 1rem;
+}
+
+.line-content {
+  color: var(--text-secondary);
+  white-space: pre;
+}
+
+/* Syntax Highlighting Tokens */
+.token-opcode { color: #818CF8; font-weight: 600; }
+.token-register { color: #F472B6; }
+.token-immediate { color: #34D399; }
+.token-comment { color: var(--text-disabled); font-style: italic; }
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .app-container {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main";
+  }
+  .sidebar {
+    display: none; /* In a real app this would adapt to a drawer */
+  }
+}
