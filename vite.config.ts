@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import * as path from 'path';
 
-export default defineConfig({
+const config = {
   root: 'src',
   server: {
     port: 5173,
@@ -19,4 +19,7 @@ export default defineConfig({
   test: {
     include: ['../tests/**/*.test.ts', '**/*.test.ts'],
   },
-});
+};
+
+export default defineConfig(config);
+
