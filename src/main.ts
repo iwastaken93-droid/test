@@ -27,6 +27,10 @@ import { SignaturePanel } from './ui/signaturePanel.js';
 import { ReportPanel } from './ui/reportPanel.js';
 import { EmulatorPanel } from './ui/emulatorPanel.js';
 import { XRefsPanel } from './ui/xrefsPanel.js';
+import { ImportsExportsPanel } from './ui/importsExportsPanel.js';
+import { AIPanel } from './ui/aiPanel.js';
+import { BinaryPatcher, PatchRecord } from './analyzer/patcher.js';
+import { PatcherPanel } from './ui/patcherPanel.js';
 
 // App state management
 interface AppState {
@@ -39,7 +43,7 @@ interface AppState {
   symbols: Symbol[];
   instructions: Instruction[];
   cfgBlocks: CoreBasicBlock[];
-  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs';
+  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports';
   selectedSymbol: Symbol | null;
   searchQuery: string;
   extractedStrings: ExtractedString[];
@@ -66,6 +70,8 @@ class ApplicationCoordinator {
   private emulatorPanel: EmulatorPanel | null = null;
   private reportPanel: ReportPanel | null = null;
   private xrefsPanel: XRefsPanel | null = null;
+  private importsExportsPanel: ImportsExportsPanel | null = null;
+  private aiPanel: AIPanel | null = null;
 
   // DOM elements cache
   private appContainer!: HTMLDivElement;
@@ -292,7 +298,7 @@ class ApplicationCoordinator {
               <button class="tab-btn active" data-tab="hex">Hex Viewer</button>
               <button class="tab-btn" data-tab="assembly">Assembly</button>
               <button class="tab-btn" data-tab="cfg">CFG Graph</button>
-              <button class="tab-btn" data-tab="decompiler">Decompiler</button>
+              <button class="tab-btn" data-tab="decompiler">Decompile / AI</button>
               <button class="tab-btn" data-tab="strings">Strings</button>
               <button class="tab-btn" data-tab="search">Search Panel</button>
               <button class="tab-btn" data-tab="signatures">Signatures</button>
@@ -300,6 +306,7 @@ class ApplicationCoordinator {
               <button class="tab-btn" data-tab="emulator">Emulator</button>
               <button class="tab-btn" data-tab="report">Report</button>
               <button class="tab-btn" data-tab="xrefs">XRefs</button>
+              <button class="tab-btn" data-tab="importsExports">Imports/Exports</button>
             </div>
             <button class="btn btn-secondary" id="open-mem-map-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-md);">
               🗺️ Memory Map
@@ -324,9 +331,15 @@ class ApplicationCoordinator {
             <div id="cfg-viewer-container" style="height: 100%; width: 100%;"></div>
           </div>
 
-          <!-- Decompiler Tab Panel -->
+          <!-- Decompile / AI Tab Panel -->
           <div class="tab-content" id="panel-decompiler" style="display: none;">
-            <pre id="decompiler-viewer-container" class="glass-panel" style="font-family: var(--font-mono); font-size: 0.85rem; overflow: auto; height: 100%; white-space: pre-wrap; padding: 1.5rem; margin: 0; color: var(--text-secondary); line-height: 1.5;"></pre>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; height: 100%;">
+              <div class="glass-panel" style="display: flex; flex-direction: column; height: 100%; padding: 1.5rem; box-sizing: border-box; overflow: hidden;">
+                <h3 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">⚙️ Decompiled C-like Code</h3>
+                <pre id="decompiler-viewer-container" style="flex: 1; font-family: var(--font-mono); font-size: 0.85rem; overflow: auto; white-space: pre-wrap; margin: 0; color: var(--text-secondary); line-height: 1.5; background: rgba(0, 0, 0, 0.2); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);"></pre>
+              </div>
+              <div id="ai-panel-container" style="height: 100%;"></div>
+            </div>
           </div>
 
           <!-- Strings Viewer Tab Panel -->
@@ -362,6 +375,11 @@ class ApplicationCoordinator {
           <!-- XRefs Tab Panel -->
           <div class="tab-content" id="panel-xrefs" style="display: none;">
             <div id="xrefs-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- Imports/Exports Tab Panel -->
+          <div class="tab-content" id="panel-importsExports" style="display: none;">
+            <div id="imports-exports-container" style="height: 100%;"></div>
           </div>
         </main>
       </div>
@@ -489,7 +507,7 @@ class ApplicationCoordinator {
     });
   }
 
-  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs') {
+  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports') {
     if (this.state.activeTab === tabName) return;
 
     // Toggle button active classes
@@ -981,6 +999,7 @@ class ApplicationCoordinator {
     this.initReportPanel();
     this.initEmulatorPanel();
     this.initXRefsPanel();
+    this.initImportsExportsPanel();
     this.updateDecompiler();
 
     // Reset memory map overlay so it regenerates for new binary
@@ -1169,6 +1188,9 @@ class ApplicationCoordinator {
             this.hexViewer.setSelectedOffset(offset);
           }
         }
+        if (this.xrefsPanel) {
+          this.xrefsPanel.selectAddress(inst.address);
+        }
       },
     });
   }
@@ -1264,6 +1286,89 @@ class ApplicationCoordinator {
         this.state.entryPoint,
         this.state.instructions
       );
+    }
+  }
+
+  private initXRefsPanel() {
+    const container = document.getElementById('xrefs-panel-container')!;
+    if (this.xrefsPanel) {
+      this.xrefsPanel.updateData(
+        this.state.binaryData,
+        this.state.sections,
+        this.state.symbols,
+        this.state.instructions,
+        this.state.extractedStrings
+      );
+    } else {
+      this.xrefsPanel = new XRefsPanel(container, {
+        onNavigate: (targetView: 'assembly' | 'hex' | 'decompiler', address: number) => {
+          if (targetView === 'assembly') {
+            if (this.assemblyView) {
+              this.assemblyView.navigateToAddress(address);
+            }
+            this.switchTab('assembly');
+          } else if (targetView === 'hex') {
+            if (this.hexViewer) {
+              const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+              const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+              const offset = address - textBaseAddress;
+              if (offset >= 0 && offset < this.state.binaryData.length) {
+                this.hexViewer.setSelectedOffset(offset);
+              }
+            }
+            this.switchTab('hex');
+          } else if (targetView === 'decompiler') {
+            // Find enclosing function symbol
+            const funcSyms = this.state.symbols
+              .filter(s => s.type === 'function')
+              .sort((a, b) => a.address - b.address);
+            
+            let enclosingSym = funcSyms[0];
+            for (let i = 0; i < funcSyms.length; i++) {
+              if (funcSyms[i].address <= address) {
+                enclosingSym = funcSyms[i];
+              } else {
+                break;
+              }
+            }
+            
+            if (enclosingSym) {
+              this.selectSymbol(enclosingSym);
+            }
+            this.switchTab('decompiler');
+          }
+        }
+      });
+      this.xrefsPanel.updateData(
+        this.state.binaryData,
+        this.state.sections,
+        this.state.symbols,
+        this.state.instructions,
+        this.state.extractedStrings
+      );
+    }
+  }
+
+  private initImportsExportsPanel() {
+    const container = document.getElementById('imports-exports-container')!;
+    if (this.importsExportsPanel) {
+      this.importsExportsPanel.updateData(this.state.dependencies);
+    } else {
+      this.importsExportsPanel = new ImportsExportsPanel(container, this.state.dependencies, {
+        onNavigate: (targetView: 'assembly' | 'hex', address: number) => {
+          if (targetView === 'assembly' && this.assemblyView) {
+            this.assemblyView.navigateToAddress(address);
+          } else if (targetView === 'hex' && this.hexViewer) {
+            const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+            const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+            const offset = address - textBaseAddress;
+            if (offset >= 0 && offset < this.state.binaryData.length) {
+              this.hexViewer.setSelectedOffset(offset);
+            }
+          }
+          this.switchTab(targetView);
+        }
+      });
     }
   }
 
@@ -1398,6 +1503,10 @@ class ApplicationCoordinator {
 
     // Refresh decompiler for this function scope
     this.updateDecompiler();
+
+    if (this.xrefsPanel) {
+      this.xrefsPanel.selectAddress(sym.address);
+    }
   }
 
   private loadSampleBinary() {

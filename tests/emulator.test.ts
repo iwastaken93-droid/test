@@ -391,9 +391,10 @@ describe('Additional Emulator & Memory Edge Cases', () => {
 
   it('should handle emulator pause and max instruction limit', () => {
     const emu = new Emulator();
-    // infinite loop: jmp 0x1000
+    // infinite loop using two alternating jumps
     const insts = [
-      { address: 0x1000, bytes: new Uint8Array([0]), mnemonic: 'jmp', opStr: '0x1000', operands: [{ type: 'imm', imm: 0x1000n }], size: 4 },
+      { address: 0x1000, bytes: new Uint8Array([0]), mnemonic: 'jmp', opStr: '0x1004', operands: [{ type: 'imm', imm: 0x1004n }], size: 4 },
+      { address: 0x1004, bytes: new Uint8Array([0]), mnemonic: 'jmp', opStr: '0x1000', operands: [{ type: 'imm', imm: 0x1000n }], size: 4 },
     ];
     emu.loadInstructions(insts);
     emu.reset(0x1000);

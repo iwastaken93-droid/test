@@ -519,3 +519,85 @@ c7a9f9e feat: initial project structure, parsers, and UI skeleton
 - Added a full test suite in [xrefs.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/xrefs.test.ts) covering manual additions, sections/virtual address validation, control flow instruction analysis, memory relative address computation, and raw pointer scanning.
 - Ran all 144 tests successfully via `pnpm test`.
 
+---
+
+### [07:25:00] 🔍 Rule-Based YARA Signature Engine Implementation
+- Designed and implemented a custom YARA-like signature engine in [yara.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/analyzer/yara.ts).
+  - Built a parser to extract rule declarations, `meta` key-value pairs, defined `strings` (text and wildcarded hex strings with modifiers like `nocase`, `ascii`, `wide`), and boolean `condition` expressions.
+  - Implemented string pattern matching for hex strings (with wildcard `??` support) and text strings (with `ascii` / `wide` / `nocase` modifier combinations).
+  - Developed a safe, recursive descent evaluator for conditions supporting parentheses, boolean operators (`and`, `or`, `not`), and keywords (`any of them`, `all of them`).
+  - Added programmatic compilation and scanning APIs via `YaraEngine` class.
+- Added comprehensive unit tests in [yara.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/yara.test.ts) covering unescaping, rule parsing, modifiers, conditions, and engine scanning.
+- Ran all 160 unit tests successfully via `pnpm test`.
+
+---
+
+## Session 3 — 2026-05-27
+
+---
+
+### [06:58:00] 🔍 Cross-References (XRefs) UI Panel Component
+- Created the premium [xrefsPanel.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/xrefsPanel.ts) component:
+  - Integrates directly with the `XRefEngine` to analyze control flow and pointer references.
+  - Implements an interactive grid to search, sort, and display incoming (`Incoming To`) and outgoing (`Outgoing From`) references.
+  - Features quick stats badges for total references, call, jump, read, write, and data references.
+  - Connects navigation callbacks back to the main Coordinator.
+- Integrated the new panel into [main.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/main.ts) under the `'xrefs'` tab.
+- Propagated symbol and instruction selections to update the active address focus inside the XRefs panel.
+- Verified all 160 unit tests pass successfully.
+
+
+---
+
+### [07:35:00] 🧪 Expanded Emulator and Memory Unit Test Coverage
+- Verified virtual memory state management, byte boundary mapping, and endianness logic in [memory.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/emulator/memory.ts).
+- Added comprehensive unit tests in [emulator.test.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/tests/emulator.test.ts) covering edge cases:
+  - Memory read/write spanning across page boundaries.
+  - Strict mode and unmapped memory behavior.
+  - Region matching logic with `getRegionAt`.
+  - Emulation of instruction operations such as `XOR` logic and flags status updating (ZF, CF, OF).
+  - Conditional branch evaluations for complex jump conditions.
+  - Verification of execution instruction count limit and pause mechanisms.
+  - Handling of unsupported instructions and error states.
+- Ran all 160 project unit tests successfully via `pnpm test`.
+
+
+---
+
+## Session 5 — 2026-05-27
+
+---
+
+### [07:35:00] 📚 Comprehensive Documentation Directory Creation
+- Created a dedicated [docs/](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs) directory containing detailed guides for the reverse engineering tool suite:
+  - [docs/README.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/README.md): Table of Contents, introduction, and design principles.
+  - [docs/architecture.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/architecture.md): Overall system execution pipeline with visual Mermaid data-flow and structure diagrams.
+  - [docs/parsers.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/parsers.md): In-depth breakdown of file parsing formats (ELF, PE, Mach-O, DEX, WASM) and unified layout structures.
+  - [docs/disassembler_router.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/disassembler_router.md): Architectural routing logic, leaders block-splitting rules, CFG linkage, dominator loop finding, and AST decompiler details.
+  - [docs/emulator.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/emulator.md): Register structures, sub-register alias masks, page-aligned virtual memory permissions, and dynamic instruction-pointer loops.
+  - [docs/analyzers.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/analyzers.md): Shannon byte-level entropy calculations, sliding-window signatures matching, string pool scans, xref resolvers, and JSON/Markdown report configurations.
+  - [docs/developer_setup.md](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/docs/developer_setup.md): Complete setup scripts (`pnpm dev`, `pnpm build`, `pnpm test`), linting tools, and formatting specifications.
+- Verified test runs and updated development history file logs.
+
+---
+
+### [07:55:00] 📥 Imports/Exports Table Viewer UI Component
+- Developed premium [importsExportsPanel.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/importsExportsPanel.ts) component:
+  - Visualizes imports and exports parsed from PE/ELF/Mach-O binaries using a glassmorphic table layout.
+  - Displays general statistics cards (Total Imports, Total Exports, External Libraries) dynamically.
+  - Implements sub-tab navigation between "Imports" and "Exports".
+  - Features real-time search filtering with visual query match highlighting.
+  - Integrates navigation hooks to double-click rows or click "Jump" buttons to go to symbols in the assembly/hex viewer.
+- Integrated the panel into [main.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/main.ts) under the `'importsExports'` tab.
+- Verified successful production build via `pnpm build` and ran all 160 unit tests successfully via `pnpm test`.
+
+---
+
+### [08:00:00] ⚙️ Emulator UI and Coordinator Integration
+- Fully integrated [EmulatorPanel](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/emulatorPanel.ts) and [ReportPanel](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/ui/reportPanel.ts) into the main application coordinator [main.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/main.ts).
+- Wired up layouts, tabs, state initialization, and update triggers in `processBinary` to correctly feed binary data, segments, and decoded instructions into the emulator.
+- Synchronized stepping events: stepping through assembly in the Emulator view automatically highlights and navigates to the updated instruction pointer (`rip`) in the core disassembler assembly view.
+- Discovered and fixed a critical bug in the instruction executor [emulator.ts](file:///C:/Users/NaThA/hacks/antigravity_things/agy/test/src/emulator/emulator.ts) where jumps targeting their own address (e.g. self-jmp loop) would trigger automatic sequential program counter increments. Implemented explicit `pcWritten` tracking to handle this correctly.
+- Confirmed that all 160 unit tests pass successfully, and that the production package bundles correctly with zero compilation errors.
+
+

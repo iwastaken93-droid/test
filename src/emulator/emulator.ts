@@ -21,6 +21,7 @@ export class Emulator {
   public breakpoints: Set<number> = new Set();
   public isRunning: boolean = false;
   private maxInstructions: number = 100000;
+  private pcWritten: boolean = false;
 
   constructor() {
     this.cpu = new CPU();
@@ -102,12 +103,12 @@ export class Emulator {
 
     try {
       const savedRip = this.cpu.read('rip');
+      this.pcWritten = false;
       this.executeInstruction(inst);
 
       // If instruction execution didn't change RIP, advance sequentially
-      const currentRip = this.cpu.read('rip');
-      if (currentRip === savedRip) {
-        this.cpu.write('rip', currentRip + BigInt(inst.size || 1));
+      if (!this.pcWritten) {
+        this.cpu.write('rip', savedRip + BigInt(inst.size || 1));
       }
 
       return { success: true, halted: false, hitBreakpoint: false };
@@ -166,7 +167,7 @@ export class Emulator {
   /**
    * Core execution of parsed/disassembled Instruction structure.
    */
-  private executeInstruction(inst: Instruction): void {
+  private executeInstruction(inst: Instruction): boolean {
     const mnemonic = inst.mnemonic.toLowerCase();
     const ops =
       inst.operands && inst.operands.length > 0
@@ -293,6 +294,7 @@ export class Emulator {
       case 'jmp': {
         const target = this.readOperand(ops[0], 64);
         this.cpu.write('rip', target);
+        this.pcWritten = true;
         break;
       }
 
@@ -304,6 +306,7 @@ export class Emulator {
         this.cpu.write('rsp', rsp);
         this.memory.write64(rsp, nextRip);
         this.cpu.write('rip', target);
+        this.pcWritten = true;
         break;
       }
 
@@ -313,6 +316,7 @@ export class Emulator {
         rsp += 8n;
         this.cpu.write('rsp', rsp);
         this.cpu.write('rip', returnAddr);
+        this.pcWritten = true;
         break;
       }
 
@@ -388,12 +392,15 @@ export class Emulator {
           if (jump) {
             const target = this.readOperand(ops[0], 64);
             this.cpu.write('rip', target);
+            this.pcWritten = true;
+            return true;
           }
         } else {
           throw new Error(`Unsupported emulator instruction: ${inst.mnemonic}`);
         }
       }
     }
+    return false;
   }
 
   /**
