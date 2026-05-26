@@ -2,6 +2,7 @@
 
 
 ## Project Scope
+WE WANT TO MINIMISE CONTEXT AS MUCH AS POSSIBLE IF YOU ARE SUBAGENT GIVE SHORT MESSAGES TO MAIN AGENT but output as much as possible for everything else
 - You are to always have at least 10 subagents running at all times. I REPEAT SUBAGENTS. 
 IF YOU WAN TO COMPLETE ANY TASK EVEN EDITING FILES, VIEWING FILES WRITING PLANS, LAUNCH A SUBAGENT. 
 Always launch subagent
@@ -21,3 +22,5 @@ use uv pip instead of pip
 akways have at least 10 subagents active if one finishes launch another one
 TELL ANY SUBAGENTS YOU LAUNCH TO NOT LAUNCH ANY SUBAGENTS
 IF YOU ARE A SUBAGENT DO NOT LAUNCH SUBAGENTS I REPEAT DO NOT
+ALSO IF I TELL YOU TO END SESSION WE END SESSION IMMEDIATELY NO MORE SABGENTS AND YOU WRITE A HANDOFF DOCUMENT TITLED Handoff.md with all context needed for next session and remember to tell them to always launch suabgents
+IF YOU ARE A SUBAGENT REMEMBER TO UPDATE DEVLOG.md before finishing

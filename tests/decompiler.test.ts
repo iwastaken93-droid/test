@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { Decompiler, BasicBlock } from '../src/disassembler/decompiler';
+import { Decompiler, BasicBlock, Instruction } from '../src/disassembler/decompiler';
 
 describe('Decompiler Core Analysis', () => {
   // Helper to construct basic blocks easily
-  function createBlock(id: string, successors: string[]): BasicBlock {
+  function createBlock(id: string, successors: string[], instructions: Instruction[] = []): BasicBlock {
     return {
       id,
-      instructions: [],
+      instructions,
       successors,
     };
   }
@@ -42,19 +42,10 @@ describe('Decompiler Core Analysis', () => {
     expect(dominators).toBeDefined();
 
     // Check dominator set sizes and contents
-    // A is entry, so only A dominates it
     expect(dominators.get('A')).toEqual(new Set(['A']));
-
-    // B's only path from entry is A -> B, dominated by A and B
     expect(dominators.get('B')).toEqual(new Set(['A', 'B']));
-
-    // C's only path from entry is A -> C, dominated by A and C
     expect(dominators.get('C')).toEqual(new Set(['A', 'C']));
-
-    // D has paths A -> B -> D and A -> C -> D. Common nodes in both paths are A and D.
     expect(dominators.get('D')).toEqual(new Set(['A', 'D']));
-
-    // E's only path goes through D, dominated by A, D, and E
     expect(dominators.get('E')).toEqual(new Set(['A', 'D', 'E']));
   });
 
@@ -90,19 +81,108 @@ describe('Decompiler Core Analysis', () => {
     );
 
     expect(loops).toBeDefined();
-    // Header should be identified as a loop header
     expect(loops.has('Header')).toBe(true);
 
     const loopInfo = loops.get('Header');
     expect(loopInfo).toBeDefined();
     expect(loopInfo.header).toBe('Header');
     expect(loopInfo.latch).toBe('Latch');
-
-    // Loop body should contain Header, Body, Latch
     expect(loopInfo.body).toEqual(new Set(['Header', 'Body', 'Latch']));
-
-    // Exit and Entry should not be part of the loop body
     expect(loopInfo.body.has('Entry')).toBe(false);
     expect(loopInfo.body.has('Exit')).toBe(false);
+  });
+
+  it('should reconstruct a struct correctly from field accesses', () => {
+    // Struct pointer is in ESI. Field 0, 4, 8 are accessed.
+    const blocks = [
+      createBlock('Entry', [], [
+        { address: 0x1000, op: 'MOV', args: ['eax', '[esi + 0]'] },
+        { address: 0x1004, op: 'MOV', args: ['[esi + 4]', 'ebx'] },
+        { address: 0x1008, op: 'MOV', args: ['[esi + 8]', '100'] },
+        { address: 0x100c, op: 'RET', args: [] },
+      ]),
+    ];
+
+    const decompiler = new Decompiler();
+    const decompiled = decompiler.decompile('test_func', ['esi', 'ebx'], blocks, 'Entry');
+
+    expect(decompiled.structs).toBeDefined();
+    expect(decompiled.structs!.length).toBe(1);
+    expect(decompiled.structs![0]).toContain('struct struct_1');
+    expect(decompiled.structs![0]).toContain('int field_0');
+    expect(decompiled.structs![0]).toContain('int field_4');
+    expect(decompiled.structs![0]).toContain('int field_8');
+
+    expect(decompiled.pseudocode).toContain('eax = esi->field_0');
+    expect(decompiled.pseudocode).toContain('esi->field_4 = ebx');
+    expect(decompiled.pseudocode).toContain('esi->field_8 = 100');
+  });
+
+  it('should reconstruct an array access pattern correctly', () => {
+    // Array access using index register
+    const blocks = [
+      createBlock('Entry', [], [
+        { address: 0x1000, op: 'MOV', args: ['eax', '[esi + edi * 4]'] },
+        { address: 0x1004, op: 'MOV', args: ['[esi + ecx * 4]', 'ebx'] },
+        { address: 0x1008, op: 'RET', args: [] },
+      ]),
+    ];
+
+    const decompiler = new Decompiler();
+    const decompiled = decompiler.decompile('array_test', ['esi', 'edi', 'ecx', 'ebx'], blocks, 'Entry');
+
+    expect(decompiled.pseudocode).toContain('eax = esi[edi]');
+    expect(decompiled.pseudocode).toContain('esi[ecx] = ebx');
+  });
+
+  it('should compute post-dominators and structure if-else control flow correctly', () => {
+    // Structure nested control flow:
+    //      Entry
+    //     /     \
+    //  Then     Else
+    //    \       /
+    //      Merge
+    const blocks = [
+      createBlock('Entry', ['Then', 'Else'], [
+        { address: 0x1000, op: 'CMP', args: ['eax', '10'] },
+        { address: 0x1004, op: 'JE', args: ['Then'] },
+      ]),
+      createBlock('Then', ['Merge'], [
+        { address: 0x1008, op: 'MOV', args: ['ebx', '1'] },
+      ]),
+      createBlock('Else', ['Merge'], [
+        { address: 0x100c, op: 'MOV', args: ['ebx', '2'] },
+      ]),
+      createBlock('Merge', [], [
+        { address: 0x1010, op: 'RET', args: ['ebx'] },
+      ]),
+    ];
+
+    const decompiler = new Decompiler();
+    const decompiled = decompiler.decompile('branch_test', ['eax'], blocks, 'Entry');
+
+    expect(decompiled.pseudocode).toContain('if (je(eax, 10))');
+    expect(decompiled.pseudocode).toContain('ebx = 1');
+    expect(decompiled.pseudocode).toContain('else');
+    expect(decompiled.pseudocode).toContain('ebx = 2');
+    expect(decompiled.pseudocode).toContain('return ebx');
+  });
+
+  it('should propagate variable types correctly', () => {
+    // Trace type from constant to local stack variables, then through registers
+    const blocks = [
+      createBlock('Entry', [], [
+        { address: 0x1000, op: 'MOV', args: ['[ebp - 4]', '42'] }, // local_4 = int
+        { address: 0x1004, op: 'MOV', args: ['eax', '[ebp - 4]'] }, // eax = int
+        { address: 0x1008, op: 'RET', args: [] },
+      ]),
+    ];
+
+    const decompiler = new Decompiler();
+    const decompiled = decompiler.decompile('type_prop_test', [], blocks, 'Entry');
+
+    // Type of local_4 and eax should be int
+    expect(decompiled.pseudocode).toContain('int local_4');
+    expect(decompiled.pseudocode).toContain('int eax');
   });
 });
