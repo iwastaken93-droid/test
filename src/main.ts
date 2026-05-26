@@ -31,6 +31,8 @@ import { ImportsExportsPanel } from './ui/importsExportsPanel.js';
 import { AIPanel } from './ui/aiPanel.js';
 import { BinaryPatcher, PatchRecord } from './analyzer/patcher.js';
 import { PatcherPanel } from './ui/patcherPanel.js';
+import { buildFCG } from './analyzer/fcg.js';
+import { FCGVisualizer } from './ui/fcgVisualizer.js';
 
 // App state management
 interface AppState {
@@ -43,7 +45,7 @@ interface AppState {
   symbols: Symbol[];
   instructions: Instruction[];
   cfgBlocks: CoreBasicBlock[];
-  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports';
+  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg';
   selectedSymbol: Symbol | null;
   searchQuery: string;
   extractedStrings: ExtractedString[];
@@ -57,6 +59,7 @@ interface AppState {
 
 class ApplicationCoordinator {
   private state!: AppState;
+  private patcher: BinaryPatcher | null = null;
 
   // UI Components
   private hexViewer: HexViewer | null = null;
@@ -72,6 +75,8 @@ class ApplicationCoordinator {
   private xrefsPanel: XRefsPanel | null = null;
   private importsExportsPanel: ImportsExportsPanel | null = null;
   private aiPanel: AIPanel | null = null;
+  private patcherPanel: PatcherPanel | null = null;
+  private fcgVisualizer: FCGVisualizer | null = null;
 
   // DOM elements cache
   private appContainer!: HTMLDivElement;
@@ -307,6 +312,7 @@ class ApplicationCoordinator {
               <button class="tab-btn" data-tab="report">Report</button>
               <button class="tab-btn" data-tab="xrefs">XRefs</button>
               <button class="tab-btn" data-tab="importsExports">Imports/Exports</button>
+              <button class="tab-btn" data-tab="patcher">Patcher</button>
             </div>
             <button class="btn btn-secondary" id="open-mem-map-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-md);">
               🗺️ Memory Map
@@ -380,6 +386,11 @@ class ApplicationCoordinator {
           <!-- Imports/Exports Tab Panel -->
           <div class="tab-content" id="panel-importsExports" style="display: none;">
             <div id="imports-exports-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- Patcher Tab Panel -->
+          <div class="tab-content" id="panel-patcher" style="display: none;">
+            <div id="patcher-panel-container" style="height: 100%;"></div>
           </div>
         </main>
       </div>
@@ -507,7 +518,7 @@ class ApplicationCoordinator {
     });
   }
 
-  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports') {
+  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher') {
     if (this.state.activeTab === tabName) return;
 
     // Toggle button active classes
@@ -1000,6 +1011,8 @@ class ApplicationCoordinator {
     this.initEmulatorPanel();
     this.initXRefsPanel();
     this.initImportsExportsPanel();
+    this.patcher = new BinaryPatcher(data);
+    this.initPatcherPanel();
     this.updateDecompiler();
 
     // Reset memory map overlay so it regenerates for new binary
@@ -1372,6 +1385,58 @@ class ApplicationCoordinator {
     }
   }
 
+  private initPatcherPanel() {
+    const container = document.getElementById('patcher-panel-container')!;
+    if (this.patcherPanel && this.patcher) {
+      this.patcherPanel.updateData(
+        this.state.sections,
+        this.state.fileName,
+        this.state.architecture
+      );
+    } else if (this.patcher) {
+      this.patcherPanel = new PatcherPanel(container, this.patcher, {
+        onPatchApplied: (patchedBinary: Uint8Array, patches: PatchRecord[]) => {
+          // 1. Update binary data in state
+          this.state.binaryData = patchedBinary;
+
+          // 2. Re-disassemble the binary to get new instructions!
+          const router = new DisassemblerRouter();
+          const instructions = router.disassemble(patchedBinary, {
+            arch: this.state.architecture,
+            baseAddress:
+              this.state.sections.find((s: any) => s.flags.execute)?.virtualAddress || 0x1000,
+            entryPoint: this.state.entryPoint,
+          });
+
+          this.state.instructions = instructions;
+
+          // 3. Re-build CFG blocks
+          const cfgBlocks = buildCFG(instructions);
+          this.state.cfgBlocks = cfgBlocks;
+
+          // 4. Update the active/relevant viewer datasets
+          if (this.hexViewer) {
+            this.hexViewer.setData(patchedBinary);
+          }
+          if (this.assemblyView) {
+            this.assemblyView.setInstructions(instructions);
+          }
+          if (this.cfgVisualizer) {
+            this.initCFGViewer();
+          }
+          if (this.emulatorPanel) {
+            this.emulatorPanel.updateData(
+              patchedBinary,
+              this.state.sections,
+              this.state.entryPoint,
+              instructions
+            );
+          }
+        }
+      });
+    }
+  }
+
   private updateDecompiler() {
     const container = document.getElementById('decompiler-viewer-container')!;
     if (this.state.cfgBlocks.length === 0) {
@@ -1426,8 +1491,28 @@ class ApplicationCoordinator {
         entryBlock?.id || ''
       );
       container.textContent = result.pseudocode;
+
+      if (!this.aiPanel) {
+        const aiContainer = document.getElementById('ai-panel-container')!;
+        if (aiContainer) {
+          this.aiPanel = new AIPanel(aiContainer, {
+            onNavigateToAddress: (address: number) => {
+              if (this.assemblyView) {
+                this.assemblyView.navigateToAddress(address);
+              }
+              this.switchTab('assembly');
+            }
+          });
+        }
+      }
+      if (this.aiPanel) {
+        this.aiPanel.updateSymbolData(this.state.selectedSymbol, result.pseudocode);
+      }
     } catch (err) {
       container.textContent = `// Decompilation failed: ${err}`;
+      if (this.aiPanel) {
+        this.aiPanel.updateSymbolData(this.state.selectedSymbol, '');
+      }
     }
   }
 
