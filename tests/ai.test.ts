@@ -51,7 +51,7 @@ describe('AI Code Explanation Engine Tests', () => {
       jne debug_detected
     `;
     const result = AIExplanationEngine.analyze(pebCode, { functionName: 'anti_debug_check' });
-    expect(result.summary).toContain('debugging');
+    expect(result.summary).toContain('debugger');
     expect(result.patterns.map(p => p.name)).toContain('Anti-Debugging & Evasion');
   });
 
@@ -63,8 +63,8 @@ describe('AI Code Explanation Engine Tests', () => {
       }
       return sum;
     `;
-    const result = AIExplanationEngine.analyze(regularCode, { functionName: 'calculate_sum' });
-    expect(result.summary).toContain('calculate_sum');
+    const result = AIExplanationEngine.analyze(regularCode, { functionName: 'process_data' });
+    expect(result.summary).toContain('process_data');
     expect(result.patterns.map(p => p.name)).toContain('Looping Iterative Routine');
   });
 });

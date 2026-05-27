@@ -33,6 +33,12 @@ import { BinaryPatcher, PatchRecord } from './analyzer/patcher.js';
 import { PatcherPanel } from './ui/patcherPanel.js';
 import { buildFCG } from './analyzer/fcg.js';
 import { FCGVisualizer } from './ui/fcgVisualizer.js';
+import { CollabPanel } from './ui/collabPanel.js';
+import { YaraPanel } from './ui/yaraPanel.js';
+import { TypeSystemPanel } from './ui/typeSystemPanel.js';
+import { MetadataPanel } from './ui/metadataPanel.js';
+import { DemanglerPanel } from './ui/demanglerPanel.js';
+import { DiffPanel } from './ui/diffPanel.js';
 
 // App state management
 interface AppState {
@@ -45,7 +51,7 @@ interface AppState {
   symbols: Symbol[];
   instructions: Instruction[];
   cfgBlocks: CoreBasicBlock[];
-  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg';
+  activeTab: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg' | 'collab' | 'yara' | 'typeSystem' | 'metadata' | 'demangler' | 'diff';
   selectedSymbol: Symbol | null;
   searchQuery: string;
   extractedStrings: ExtractedString[];
@@ -55,6 +61,7 @@ interface AppState {
     exports: { name: string; address?: number }[];
     locals: { name: string; address: number; calls: string[] }[];
   };
+  lastModified?: number;
 }
 
 class ApplicationCoordinator {
@@ -77,6 +84,12 @@ class ApplicationCoordinator {
   private aiPanel: AIPanel | null = null;
   private patcherPanel: PatcherPanel | null = null;
   private fcgVisualizer: FCGVisualizer | null = null;
+  private collabPanel: CollabPanel | null = null;
+  private yaraPanel: YaraPanel | null = null;
+  private typeSystemPanel: TypeSystemPanel | null = null;
+  private metadataPanel: MetadataPanel | null = null;
+  private demanglerPanel: DemanglerPanel | null = null;
+  private diffPanel: DiffPanel | null = null;
 
   // DOM elements cache
   private appContainer!: HTMLDivElement;
@@ -311,8 +324,13 @@ class ApplicationCoordinator {
               <button class="tab-btn" data-tab="emulator">Emulator</button>
               <button class="tab-btn" data-tab="report">Report</button>
               <button class="tab-btn" data-tab="xrefs">XRefs</button>
-              <button class="tab-btn" data-tab="importsExports">Imports/Exports</button>
-              <button class="tab-btn" data-tab="patcher">Patcher</button>
+              <button class="tab-btn" data-tab="metadata">Metadata</button>
+              <button class="tab-btn" data-tab="fcg">FCG Graph</button>
+              <button class="tab-btn" data-tab="collab">Collab</button>
+              <button class="tab-btn" data-tab="yara">YARA</button>
+              <button class="tab-btn" data-tab="typeSystem">Type System</button>
+              <button class="tab-btn" data-tab="demangler">Demangler</button>
+              <button class="tab-btn" data-tab="diff">Diff Viewer</button>
             </div>
             <button class="btn btn-secondary" id="open-mem-map-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-md);">
               🗺️ Memory Map
@@ -391,6 +409,41 @@ class ApplicationCoordinator {
           <!-- Patcher Tab Panel -->
           <div class="tab-content" id="panel-patcher" style="display: none;">
             <div id="patcher-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- Metadata Tab Panel -->
+          <div class="tab-content" id="panel-metadata" style="display: none;">
+            <div id="metadata-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- FCG Tab Panel -->
+          <div class="tab-content" id="panel-fcg" style="display: none;">
+            <div id="fcg-viewer-container" style="height: 100%; width: 100%;"></div>
+          </div>
+
+          <!-- Collab Tab Panel -->
+          <div class="tab-content" id="panel-collab" style="display: none;">
+            <div id="collab-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- YARA Tab Panel -->
+          <div class="tab-content" id="panel-yara" style="display: none;">
+            <div id="yara-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- Type System Tab Panel -->
+          <div class="tab-content" id="panel-typeSystem" style="display: none;">
+            <div id="type-system-container" style="height: 100%;"></div>
+          </div>
+
+           <!-- Demangler Tab Panel -->
+          <div class="tab-content" id="panel-demangler" style="display: none;">
+            <div id="demangler-panel-container" style="height: 100%;"></div>
+          </div>
+
+          <!-- Diff Tab Panel -->
+          <div class="tab-content" id="panel-diff" style="display: none;">
+            <div id="diff-panel-container" style="height: 100%;"></div>
           </div>
         </main>
       </div>
@@ -518,7 +571,7 @@ class ApplicationCoordinator {
     });
   }
 
-  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher') {
+  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg' | 'collab' | 'yara' | 'typeSystem' | 'metadata' | 'demangler') {
     if (this.state.activeTab === tabName) return;
 
     // Toggle button active classes
@@ -548,6 +601,8 @@ class ApplicationCoordinator {
       if (this.state.selectedSymbol) {
         this.assemblyView.navigateToAddress(this.state.selectedSymbol.address);
       }
+    } else if (tabName === 'typeSystem' && this.typeSystemPanel) {
+      this.typeSystemPanel.updateArchitecture(this.state.architecture);
     } else if (tabName === 'dependencies' && this.dependencyGraph) {
       // Re-trigger layout/resizing inside canvas container
       setTimeout(() => {
@@ -563,13 +618,13 @@ class ApplicationCoordinator {
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target && event.target.result instanceof ArrayBuffer) {
-        this.processBinary(file.name, event.target.result);
+        this.processBinary(file.name, event.target.result, file.lastModified);
       }
     };
     reader.readAsArrayBuffer(file);
   }
 
-  private processBinary(fileName: string, arrayBuffer: ArrayBuffer) {
+  private processBinary(fileName: string, arrayBuffer: ArrayBuffer, lastModified?: number) {
     const data = new Uint8Array(arrayBuffer);
     const fileSize = arrayBuffer.byteLength;
 
@@ -989,7 +1044,8 @@ class ApplicationCoordinator {
       searchQuery: '',
       extractedStrings,
       dependencies: dependencyData,
-    };
+      lastModified: lastModified || Date.now(),
+    } as any;
 
     // Update Header Status UI
     this.statusFileName.textContent = this.state.fileName;
@@ -1013,6 +1069,12 @@ class ApplicationCoordinator {
     this.initImportsExportsPanel();
     this.patcher = new BinaryPatcher(data);
     this.initPatcherPanel();
+    this.initFCGViewer();
+    this.initCollabPanel();
+    this.initYaraPanel();
+    this.initMetadataPanel();
+    this.initTypeSystemPanel();
+    this.initDemanglerPanel();
     this.updateDecompiler();
 
     // Reset memory map overlay so it regenerates for new binary
@@ -1432,6 +1494,12 @@ class ApplicationCoordinator {
               instructions
             );
           }
+          if (this.yaraPanel) {
+            this.yaraPanel.updateData(patchedBinary, this.state.sections);
+          }
+          if (this.fcgVisualizer) {
+            this.initFCGViewer();
+          }
         }
       });
     }
@@ -1516,6 +1584,183 @@ class ApplicationCoordinator {
     }
   }
 
+  private initFCGViewer() {
+    const container = document.getElementById('fcg-viewer-container')!;
+    container.innerHTML = '';
+    const fcgGraph = buildFCG(this.state.symbols, this.state.instructions);
+    this.fcgVisualizer = new FCGVisualizer(container, fcgGraph, {
+      onNodeSelect: (address: number) => {
+        if (this.assemblyView) {
+          this.assemblyView.navigateToAddress(address);
+        }
+        this.switchTab('assembly');
+      }
+    });
+  }
+
+  private initCollabPanel() {
+    const container = document.getElementById('collab-panel-container')!;
+    if (this.collabPanel) {
+      this.collabPanel.destroy();
+    }
+    this.collabPanel = new CollabPanel(container, {
+      onNavigate: (targetView: 'assembly' | 'hex' | 'decompiler', address: number) => {
+        if (targetView === 'assembly' && this.assemblyView) {
+          this.assemblyView.navigateToAddress(address);
+        } else if (targetView === 'hex' && this.hexViewer) {
+          const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+          const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+          const offset = address - textBaseAddress;
+          if (offset >= 0 && offset < this.state.binaryData.length) {
+            this.hexViewer.setSelectedOffset(offset);
+          }
+        } else if (targetView === 'decompiler') {
+          const funcSyms = this.state.symbols
+            .filter(s => s.type === 'function')
+            .sort((a, b) => a.address - b.address);
+          
+          let enclosingSym = funcSyms[0];
+          for (let i = 0; i < funcSyms.length; i++) {
+            if (funcSyms[i].address <= address) {
+              enclosingSym = funcSyms[i];
+            } else {
+              break;
+            }
+          }
+          if (enclosingSym) {
+            this.selectSymbol(enclosingSym);
+          }
+        }
+        this.switchTab(targetView);
+      },
+      onCommentSynced: (address: number, comment: string) => {
+        console.log(`Comment synced at 0x${address.toString(16)}: ${comment}`);
+      },
+      onHighlightSynced: (address: number, color: string) => {
+        console.log(`Highlight synced at 0x${address.toString(16)}: ${color}`);
+      },
+      onRenameSynced: (oldName: string, newName: string, type: 'function' | 'variable') => {
+        console.log(`Rename synced: ${oldName} -> ${newName} (${type})`);
+        const sym = this.state.symbols.find(s => s.name === oldName);
+        if (sym) {
+          sym.name = newName;
+          this.renderSidebarList();
+        }
+      }
+    });
+  }
+
+  private initYaraPanel() {
+    const container = document.getElementById('yara-panel-container')!;
+    if (this.yaraPanel) {
+      this.yaraPanel.updateData(this.state.binaryData, this.state.sections);
+    } else {
+      this.yaraPanel = new YaraPanel(container, {
+        onNavigate: (targetView: 'assembly' | 'hex' | 'decompiler', address: number) => {
+          if (targetView === 'assembly' && this.assemblyView) {
+            this.assemblyView.navigateToAddress(address);
+          } else if (targetView === 'hex' && this.hexViewer) {
+            const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+            const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+            const offset = address - textBaseAddress;
+            if (offset >= 0 && offset < this.state.binaryData.length) {
+              this.hexViewer.setSelectedOffset(offset);
+            }
+          } else if (targetView === 'decompiler') {
+            const funcSyms = this.state.symbols
+              .filter(s => s.type === 'function')
+              .sort((a, b) => a.address - b.address);
+            
+            let enclosingSym = funcSyms[0];
+            for (let i = 0; i < funcSyms.length; i++) {
+              if (funcSyms[i].address <= address) {
+                enclosingSym = funcSyms[i];
+              } else {
+                break;
+              }
+            }
+            if (enclosingSym) {
+              this.selectSymbol(enclosingSym);
+            }
+          }
+          this.switchTab(targetView);
+        }
+      });
+      this.yaraPanel.updateData(this.state.binaryData, this.state.sections);
+    }
+  }
+
+  private initMetadataPanel() {
+    const container = document.getElementById('metadata-panel-container')!;
+    if (!container) return;
+    if (this.metadataPanel) {
+      this.metadataPanel.updateData({
+        fileName: this.state.fileName,
+        fileSize: this.state.fileSize,
+        binaryData: this.state.binaryData,
+        architecture: this.state.architecture,
+        entryPoint: this.state.entryPoint,
+        sectionsCount: this.state.sections.length,
+        symbolsCount: this.state.symbols.length,
+        lastModified: this.state.lastModified
+      });
+    } else {
+      this.metadataPanel = new MetadataPanel(container);
+      this.metadataPanel.updateData({
+        fileName: this.state.fileName,
+        fileSize: this.state.fileSize,
+        binaryData: this.state.binaryData,
+        architecture: this.state.architecture,
+        entryPoint: this.state.entryPoint,
+        sectionsCount: this.state.sections.length,
+        symbolsCount: this.state.symbols.length,
+        lastModified: this.state.lastModified
+      });
+    }
+  }
+
+  private initTypeSystemPanel() {
+    const container = document.getElementById('type-system-container')!;
+    if (container) {
+      if (this.typeSystemPanel) {
+        this.typeSystemPanel.updateArchitecture(this.state.architecture);
+      } else {
+        this.typeSystemPanel = new TypeSystemPanel(container, {
+          onNavigate: (targetView: 'assembly' | 'hex' | 'decompiler', address: number) => {
+            if (targetView === 'assembly' && this.assemblyView) {
+              this.assemblyView.navigateToAddress(address);
+            } else if (targetView === 'hex' && this.hexViewer) {
+              const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+              const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+              const offset = address - textBaseAddress;
+              if (offset >= 0 && offset < this.state.binaryData.length) {
+                this.hexViewer.setSelectedOffset(offset);
+              }
+            } else if (targetView === 'decompiler') {
+              const funcSyms = this.state.symbols
+                .filter(s => s.type === 'function')
+                .sort((a, b) => a.address - b.address);
+              
+              let enclosingSym = funcSyms[0];
+              for (let i = 0; i < funcSyms.length; i++) {
+                if (funcSyms[i].address <= address) {
+                  enclosingSym = funcSyms[i];
+                } else {
+                  break;
+                }
+              }
+              if (enclosingSym) {
+                this.selectSymbol(enclosingSym);
+              }
+            }
+            this.switchTab(targetView);
+          }
+        });
+        this.typeSystemPanel.updateArchitecture(this.state.architecture);
+      }
+    }
+  }
+
   private renderSidebarList() {
     this.sidebarList.innerHTML = '';
     const query = this.state.searchQuery.toLowerCase();
@@ -1591,6 +1836,29 @@ class ApplicationCoordinator {
 
     if (this.xrefsPanel) {
       this.xrefsPanel.selectAddress(sym.address);
+    }
+  }
+
+  private initDemanglerPanel() {
+    const container = document.getElementById('demangler-panel-container')!;
+    if (this.demanglerPanel) {
+      this.demanglerPanel.updateData(this.state.symbols);
+    } else {
+      this.demanglerPanel = new DemanglerPanel(container, this.state.symbols, {
+        onNavigate: (targetView: 'assembly' | 'hex', address: number) => {
+          if (targetView === 'assembly' && this.assemblyView) {
+            this.assemblyView.navigateToAddress(address);
+          } else if (targetView === 'hex' && this.hexViewer) {
+            const executeSection = this.state.sections.find((s: any) => s.flags.execute);
+            const textBaseAddress = executeSection ? executeSection.virtualAddress : 0x1000;
+            const offset = address - textBaseAddress;
+            if (offset >= 0 && offset < this.state.binaryData.length) {
+              this.hexViewer.setSelectedOffset(offset);
+            }
+          }
+          this.switchTab(targetView);
+        }
+      });
     }
   }
 

@@ -6,6 +6,7 @@
 import { CPU, RFlag } from './cpu.js';
 import { Memory } from './memory.js';
 import { Instruction, Operand, MemoryOperand } from '../disassembler/types.js';
+import { SyscallHandler } from './syscall.js';
 
 export interface ExecutionResult {
   success: boolean;
@@ -20,6 +21,7 @@ export class Emulator {
   public instructions: Map<number, Instruction> = new Map();
   public breakpoints: Set<number> = new Set();
   public isRunning: boolean = false;
+  public syscallHandler?: SyscallHandler;
   private maxInstructions: number = 100000;
   private pcWritten: boolean = false;
 
@@ -91,6 +93,24 @@ export class Emulator {
    */
   public step(): ExecutionResult {
     const ripVal = Number(this.cpu.read('rip'));
+    if (this.syscallHandler && this.syscallHandler.hasHook(ripVal)) {
+      try {
+        this.syscallHandler.executeHook(ripVal, this);
+        return {
+          success: true,
+          halted: this.syscallHandler.context.exitCode !== null,
+          hitBreakpoint: false,
+        };
+      } catch (err: any) {
+        return {
+          success: false,
+          error: err.message || String(err),
+          halted: true,
+          hitBreakpoint: false,
+        };
+      }
+    }
+
     const inst = this.instructions.get(ripVal);
     if (!inst) {
       return {
@@ -184,6 +204,15 @@ export class Emulator {
     }
 
     switch (mnemonic) {
+      case 'syscall': {
+        if (this.syscallHandler) {
+          this.syscallHandler.handleSyscall(this);
+        } else {
+          throw new Error('Syscall handler not registered');
+        }
+        break;
+      }
+
       case 'mov': {
         const val = this.readOperand(ops[1], opSize);
         this.writeOperand(ops[0], val, opSize);

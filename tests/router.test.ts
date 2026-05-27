@@ -94,4 +94,84 @@ describe('DisassemblerRouter Unit Tests', () => {
       expect(arch).toBe('arm');
     });
   });
+
+  describe('x86_64 Instruction Expansion Verification', () => {
+    const router = new DisassemblerRouter();
+
+    it('should disassemble ADD reg, reg correctly (0x01)', () => {
+      // 0x01, 0xc3 (add ebx, eax)
+      const data = new Uint8Array([0x01, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('add');
+      expect(insts[0].opStr).toBe('rbx, rax');
+    });
+
+    it('should disassemble TEST reg, reg correctly (0x85)', () => {
+      // 0x85, 0xc3 (test ebx, eax)
+      const data = new Uint8Array([0x85, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('test');
+      expect(insts[0].opStr).toBe('rbx, rax');
+    });
+
+    it('should disassemble flag instructions correctly', () => {
+      // 0xf8 (clc)
+      const data = new Uint8Array([0xf8]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('clc');
+      expect(insts[0].opStr).toBe('');
+    });
+
+    it('should disassemble shifts correctly (0xd3)', () => {
+      // 0xd3, 0xf8 (sar eax, cl / sar reg, cl)
+      const data = new Uint8Array([0xd3, 0xf8]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('sar');
+      expect(insts[0].opStr).toBe('rax, cl');
+    });
+
+    it('should disassemble Group 3 NEG correctly (0xf7)', () => {
+      // 0xf7, 0xd8 (neg eax)
+      const data = new Uint8Array([0xf7, 0xd8]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('neg');
+      expect(insts[0].opStr).toBe('rax');
+    });
+  });
+
+  describe('ARM AArch64 Instruction Expansion Verification', () => {
+    const router = new DisassemblerRouter();
+
+    it('should disassemble CMP register correctly', () => {
+      // 0xeb01001f (cmp x0, x1) -> LE: 1f, 00, 01, eb
+      const data = new Uint8Array([0x1f, 0x00, 0x01, 0xeb]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('cmp');
+      expect(insts[0].opStr).toBe('x0, x1');
+    });
+
+    it('should disassemble TST register correctly', () => {
+      // 0xea01001f (tst x0, x1) -> LE: 1f, 00, 01, ea
+      const data = new Uint8Array([0x1f, 0x00, 0x01, 0xea]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('tst');
+      expect(insts[0].opStr).toBe('x0, x1');
+    });
+
+    it('should disassemble LSR immediate shift correctly', () => {
+      // 0xd342fc20 (lsr x0, x1, #2) -> LE: 20, fc, 42, d3
+      const data = new Uint8Array([0x20, 0xfc, 0x42, 0xd3]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('lsr');
+      expect(insts[0].opStr).toBe('x0, x1, #0x2');
+    });
+
+    it('should disassemble MRS NZCV flags register correctly', () => {
+      // 0xd53b4200 (mrs x0, nzcv) -> LE: 00, 42, 3b, d5
+      const data = new Uint8Array([0x00, 0x42, 0x3b, 0xd5]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('mrs');
+      expect(insts[0].opStr).toBe('x0, nzcv');
+    });
+  });
 });

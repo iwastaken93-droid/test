@@ -379,7 +379,42 @@ rule Common_Strings {
 
     const editorLabel = document.createElement('div');
     editorLabel.className = 'yara-editor-label';
-    editorLabel.innerHTML = `<span>YARA Rules Definition</span>`;
+    editorLabel.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+    `;
+    
+    const labelTitle = document.createElement('span');
+    labelTitle.textContent = 'YARA Rules Definition';
+    editorLabel.appendChild(labelTitle);
+
+    const editorBtnGroup = document.createElement('div');
+    editorBtnGroup.className = 'yara-btn-group';
+
+    const importBtn = document.createElement('button');
+    importBtn.className = 'yara-action-btn';
+    importBtn.id = 'yara-import-btn';
+    importBtn.textContent = '📥 Import';
+    importBtn.title = 'Import YARA rules from file';
+
+    const exportBtn = document.createElement('button');
+    exportBtn.className = 'yara-action-btn';
+    exportBtn.id = 'yara-export-btn';
+    exportBtn.textContent = '📤 Export';
+    exportBtn.title = 'Export YARA rules to file';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.id = 'yara-file-input';
+    fileInput.accept = '.yar,.yara,.txt';
+    fileInput.style.display = 'none';
+
+    editorBtnGroup.appendChild(importBtn);
+    editorBtnGroup.appendChild(exportBtn);
+    editorBtnGroup.appendChild(fileInput);
+    editorLabel.appendChild(editorBtnGroup);
 
     this.editorEl = document.createElement('textarea');
     this.editorEl.className = 'yara-textarea';
@@ -419,6 +454,40 @@ rule Common_Strings {
     this.container.appendChild(this.rootEl);
   }
 
+  /**
+   * Imports YARA rules source code, updates the editor UI, and runs validation.
+   */
+  public importRules(rules: string): void {
+    this.currentRulesSource = rules;
+    if (this.editorEl) {
+      this.editorEl.value = rules;
+    }
+    this.runScan();
+  }
+
+  /**
+   * Exports the current YARA rules source code.
+   */
+  public exportRules(): string {
+    return this.currentRulesSource;
+  }
+
+  /**
+   * Triggers a browser download of the current YARA rules.
+   */
+  public downloadRules(filename = 'rules.yar'): void {
+    const rules = this.exportRules();
+    const blob = new Blob([rules], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   private setupEvents() {
     this.runBtn.addEventListener('click', () => {
       this.runScan();
@@ -427,6 +496,38 @@ rule Common_Strings {
     this.editorEl.addEventListener('input', () => {
       this.currentRulesSource = this.editorEl.value;
     });
+
+    const importBtn = this.container.querySelector('#yara-import-btn');
+    const exportBtn = this.container.querySelector('#yara-export-btn');
+    const fileInput = this.container.querySelector('#yara-file-input') as HTMLInputElement | null;
+
+    if (importBtn && fileInput) {
+      importBtn.addEventListener('click', () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target?.result as string;
+          if (content !== undefined) {
+            this.importRules(content);
+          }
+        };
+        reader.readAsText(file);
+        // Clear input value to allow importing the same file again
+        fileInput.value = '';
+      });
+    }
+
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        this.downloadRules();
+      });
+    }
   }
 
   private runScan() {
