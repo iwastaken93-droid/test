@@ -48,7 +48,8 @@ export class VulnScanner {
     ['realpath', { severity: 'medium', desc: 'realpath() can overflow the destination buffer if it is smaller than PATH_MAX.' }],
     ['tempnam', { severity: 'medium', desc: 'tempnam() creates temporary files insecurely. Use mkstemp instead.' }],
     ['tmpnam', { severity: 'medium', desc: 'tmpnam() creates temporary files insecurely. Use mkstemp instead.' }],
-    ['getwd', { severity: 'high', desc: 'getwd() does not prevent overflow of buffer. Use getcwd instead.' }]
+    ['getwd', { severity: 'high', desc: 'getwd() does not prevent overflow of buffer. Use getcwd instead.' }],
+    ['system', { severity: 'high', desc: 'Potential command injection vulnerability on system() calls. Ensure argument inputs are strictly sanitized.' }]
   ]);
 
   /**
@@ -68,6 +69,7 @@ export class VulnScanner {
       // Direct symbol scan
       for (const sym of symbols) {
         const cleanedName = this.cleanSymbolName(sym.name);
+        console.log("DEBUG_VULN", { name: sym.name, cleanedName, has: VulnScanner.UNSAFE_APIS.has(cleanedName) });
         if (VulnScanner.UNSAFE_APIS.has(cleanedName)) {
           const apiInfo = VulnScanner.UNSAFE_APIS.get(cleanedName)!;
           matches.push({
@@ -119,7 +121,7 @@ export class VulnScanner {
         }
 
         // Pattern B: Writing to stacks with huge local buffer displacements (e.g. sub rsp, 0x1000 or similar large structures)
-        if (mnemonic === 'sub' && inst.operands.length >= 2) {
+        if (mnemonic === 'sub' && inst.operands && inst.operands.length >= 2) {
           const op0 = inst.operands[0];
           const op1 = inst.operands[1];
           if (op0.type === 'reg' && (op0.reg === 'rsp' || op0.reg === 'esp')) {
@@ -160,15 +162,28 @@ export class VulnScanner {
 
           // If no jump/check is visible nearby, check if arithmetic operation is done on registers
           // typically involved in length calculation or array indexing (e.g. index/offset registers)
-          const hasRegDest = inst.operands.length > 0 && inst.operands[0].type === 'reg';
+          const hasRegDest = inst.operands && inst.operands.length > 0 && inst.operands[0].type === 'reg';
           if (hasRegDest) {
             const regName = String(inst.operands[0].reg).toLowerCase();
             // Common loop/indexing registers or counter registers
-            if (['ecx', 'rcx', 'esi', 'rsi', 'edi', 'rdi'].includes(regName)) {
+            const isIndexReg = ['ecx', 'rcx', 'esi', 'rsi', 'edi', 'rdi'].includes(regName);
+            
+            // Check if there's a large immediate operand
+            let isLargeImmediate = false;
+            if (inst.operands.length >= 2 && inst.operands[1].type === 'imm') {
+              const immVal = Number(inst.operands[1].imm);
+              if (immVal >= 32767) {
+                isLargeImmediate = true;
+              }
+            }
+
+            if (isIndexReg || isLargeImmediate) {
               matches.push({
                 category: 'integer_overflow',
                 severity: 'low',
-                description: `Arithmetic operation (${mnemonic}) on index/counter register (${regName}) without direct adjacent overflow check. Watch out for possible integer wraparound.`,
+                description: isLargeImmediate
+                  ? `Arithmetic operation (${mnemonic}) with a large immediate value on register (${regName}). Watch out for possible integer overflow.`
+                  : `Arithmetic operation (${mnemonic}) on index/counter register (${regName}) without direct adjacent overflow check. Watch out for possible integer wraparound.`,
                 address: inst.address,
                 evidence: `${inst.mnemonic} ${inst.opStr}`
               });
@@ -196,7 +211,7 @@ export class VulnScanner {
    * Cleans symbol names (removes prefixes, namespaces, or DLL linkages).
    */
   private cleanSymbolName(name: string): string {
-    let clean = name.replace(/^(imp_|__imp_|__imp_dll_|__dl_)/, '');
+    let clean = name.replace(/^(__imp_dll_|__imp_|imp_|__dl_)/, '');
     // Clean C++ mangled name or API suffixes
     const dotIndex = clean.indexOf('.');
     if (dotIndex !== -1) {

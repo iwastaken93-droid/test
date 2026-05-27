@@ -138,7 +138,7 @@ export class BinaryPatcher {
    * Exports/Downloads the patched binary.
    */
   public exportBinary(filename: string): void {
-    const blob = new Blob([this.patchedBinary], { type: 'application/octet-stream' });
+    const blob = new Blob([this.patchedBinary.buffer as ArrayBuffer], { type: 'application/octet-stream' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

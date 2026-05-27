@@ -99,10 +99,6 @@ describe('Syscall and Windows API Emulation Tests', () => {
     const handler = new SyscallHandler();
     emu.syscallHandler = handler;
 
-    // Retrieve hook address for VirtualAlloc
-    const vaAddr = emu.syscallHandler.registerWindowsHook('VirtualAlloc', (emu) => {
-      // Stub already registered in constructor, let's just trigger it.
-    });
     // Actually the constructor registers VirtualAlloc. Let's find its address.
     const hookAddr = (handler as any).winHookNames.get('VirtualAlloc');
     expect(hookAddr).toBeDefined();

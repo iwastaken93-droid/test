@@ -41,6 +41,7 @@ export class SyscallHandler {
       const dwSize = Number(args[1]);
       const flAllocationType = Number(args[2]);
       const flProtect = Number(args[3]);
+      console.log('VirtualAlloc hook called!', { lpAddress, dwSize, flAllocationType, flProtect });
 
       let allocAddr = lpAddress;
       if (allocAddr === 0n) {
@@ -49,6 +50,7 @@ export class SyscallHandler {
         const alignedSize = Math.ceil(dwSize / 4096) * 4096;
         this.context.nextAllocAddress += BigInt(alignedSize);
       }
+      console.log('VirtualAlloc mapped at:', allocAddr.toString(16));
 
       // Map memory region
       // Simplistic permission mapping: if flProtect is PAGE_EXECUTE_READWRITE (0x40) or PAGE_EXECUTE_READ (0x20)
@@ -60,6 +62,7 @@ export class SyscallHandler {
       this.context.allocatedRegions.push({ address: allocAddr, size: dwSize });
 
       emu.cpu.write('rax', allocAddr);
+      console.log('VirtualAlloc wrote rax:', emu.cpu.read('rax').toString(16));
     });
 
     this.registerWindowsHook('GetProcAddress', (emu) => {
@@ -109,6 +112,9 @@ export class SyscallHandler {
    * Register a custom Windows API hook.
    */
   public registerWindowsHook(name: string, handler: (emu: Emulator) => void): bigint {
+    if (this.winHookNames.has(name)) {
+      return this.winHookNames.get(name)!;
+    }
     const addr = this.nextHookAddress;
     this.winHooks.set(addr, handler);
     this.winHookNames.set(name, addr);
@@ -221,6 +227,7 @@ export class SyscallHandler {
 
   private handleSysExit(emu: Emulator): void {
     const status = Number(emu.cpu.read('rdi'));
+    console.log('handleSysExit called with status:', status, 'rax is:', emu.cpu.read('rax'));
     this.context.exitCode = status;
     emu.pause(); // Stop emulator run loop
     emu.cpu.write('rax', 0n);

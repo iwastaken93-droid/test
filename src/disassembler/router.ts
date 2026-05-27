@@ -565,17 +565,37 @@ export class DisassemblerRouter {
     ];
 
     const arithmeticOpcodes: Record<number, { mnemonic: string; isRegToRm: boolean }> = {
+      0x00: { mnemonic: 'add', isRegToRm: true },
       0x01: { mnemonic: 'add', isRegToRm: true },
+      0x02: { mnemonic: 'add', isRegToRm: false },
       0x03: { mnemonic: 'add', isRegToRm: false },
+      0x08: { mnemonic: 'or', isRegToRm: true },
       0x09: { mnemonic: 'or', isRegToRm: true },
+      0x0a: { mnemonic: 'or', isRegToRm: false },
       0x0b: { mnemonic: 'or', isRegToRm: false },
+      0x10: { mnemonic: 'adc', isRegToRm: true },
+      0x11: { mnemonic: 'adc', isRegToRm: true },
+      0x12: { mnemonic: 'adc', isRegToRm: false },
+      0x13: { mnemonic: 'adc', isRegToRm: false },
+      0x18: { mnemonic: 'sbb', isRegToRm: true },
+      0x19: { mnemonic: 'sbb', isRegToRm: true },
+      0x1a: { mnemonic: 'sbb', isRegToRm: false },
+      0x1b: { mnemonic: 'sbb', isRegToRm: false },
+      0x20: { mnemonic: 'and', isRegToRm: true },
       0x21: { mnemonic: 'and', isRegToRm: true },
+      0x22: { mnemonic: 'and', isRegToRm: false },
       0x23: { mnemonic: 'and', isRegToRm: false },
+      0x28: { mnemonic: 'sub', isRegToRm: true },
       0x29: { mnemonic: 'sub', isRegToRm: true },
+      0x2a: { mnemonic: 'sub', isRegToRm: false },
       0x2b: { mnemonic: 'sub', isRegToRm: false },
+      0x30: { mnemonic: 'xor', isRegToRm: true },
       0x31: { mnemonic: 'xor', isRegToRm: true },
+      0x32: { mnemonic: 'xor', isRegToRm: false },
       0x33: { mnemonic: 'xor', isRegToRm: false },
+      0x38: { mnemonic: 'cmp', isRegToRm: true },
       0x39: { mnemonic: 'cmp', isRegToRm: true },
+      0x3a: { mnemonic: 'cmp', isRegToRm: false },
       0x3b: { mnemonic: 'cmp', isRegToRm: false },
     };
 
@@ -1085,6 +1105,47 @@ export class DisassemblerRouter {
             ];
             size = opSize + 1;
           }
+          // CMOVcc (0x0f 0x40 - 0x0f 0x4f)
+          else if (opcode >= 0x40 && opcode <= 0x4f && nextByteIdx < data.length) {
+            const conds = [
+              'cmovo', 'cmovno', 'cmovb', 'cmovae', 'cmove', 'cmovne', 'cmovbe', 'cmova',
+              'cmovs', 'cmovns', 'cmovp', 'cmovnp', 'cmovl', 'cmovge', 'cmovle', 'cmovg'
+            ];
+            mnemonic = conds[opcode - 0x40];
+            const modrm = data[nextByteIdx];
+            const reg = ((modrm & 0x38) >> 3) + (rexR << 3);
+            const rm = (modrm & 0x07) + (rexB << 3);
+            const dst = regs[reg];
+            const src = regs[rm];
+            opStr = `${dst}, ${src}`;
+            operands = [
+              { type: 'reg', reg: dst },
+              { type: 'reg', reg: src }
+            ];
+            size = opSize + 1;
+          }
+          // BSF / BSR (0x0f 0xbc / 0x0f 0xbd)
+          else if ((opcode === 0xbc || opcode === 0xbd) && nextByteIdx < data.length) {
+            mnemonic = opcode === 0xbc ? 'bsf' : 'bsr';
+            const modrm = data[nextByteIdx];
+            const reg = ((modrm & 0x38) >> 3) + (rexR << 3);
+            const rm = (modrm & 0x07) + (rexB << 3);
+            const dst = regs[reg];
+            const src = regs[rm];
+            opStr = `${dst}, ${src}`;
+            operands = [
+              { type: 'reg', reg: dst },
+              { type: 'reg', reg: src }
+            ];
+            size = opSize + 1;
+          }
+          // UD2 (0x0f 0x0b)
+          else if (opcode === 0x0b) {
+            mnemonic = 'ud2';
+            opStr = '';
+            operands = [];
+            size = opSize;
+          }
         }
       }
 
@@ -1444,34 +1505,90 @@ export class DisassemblerRouter {
           { type: 'imm', imm },
         ];
       }
-      // ORR / AND / EOR (register/move)
+      // ORR / AND / EOR / ORN / BIC / EON / MVN (register/logical)
       else if (
-        (((val & 0xffc00000) >>> 0) === 0xaa000000) ||
-        (((val & 0xffc00000) >>> 0) === 0x0a000000) ||
-        (((val & 0xffc00000) >>> 0) === 0xca000000)
+        (((val & 0x1f000000) >>> 0) === 0x0a000000)
       ) {
         const op = (val >> 29) & 3;
+        const neg = (val & 0x00200000) !== 0;
         const rd = val & 0x1f;
         const rn = (val >> 5) & 0x1f;
         const rm = (val >> 16) & 0x1f;
-        const rdName = regs[rd];
-        const rnName = regs[rn];
-        const rmName = regs[rm];
+        const rdName = regs[rd] || 'x0';
+        const rnName = regs[rn] || 'x0';
+        const rmName = regs[rm] || 'x0';
 
         if (op === 1 && rnName === 'xzr') {
-          mnemonic = 'mov';
+          mnemonic = neg ? 'mvn' : 'mov';
           opStr = `${rdName}, ${rmName}`;
           operands = [
             { type: 'reg', reg: rdName },
             { type: 'reg', reg: rmName },
           ];
         } else {
-          mnemonic = op === 0 ? 'and' : op === 1 ? 'orr' : 'eor';
+          const names = [
+            neg ? 'bic' : 'and',
+            neg ? 'orn' : 'orr',
+            neg ? 'eon' : 'eor',
+            neg ? 'bics' : 'ands'
+          ];
+          mnemonic = names[op];
           opStr = `${rdName}, ${rnName}, ${rmName}`;
           operands = [
             { type: 'reg', reg: rdName },
             { type: 'reg', reg: rnName },
             { type: 'reg', reg: rmName },
+          ];
+        }
+      }
+      // SDIV / UDIV (Signed / Unsigned Division)
+      else if (
+        (((val & 0xffc0fc00) >>> 0) === 0x1ac00c00) ||
+        (((val & 0xffc0fc00) >>> 0) === 0x1ac00800)
+      ) {
+        mnemonic = (val & 0x00000400) ? 'sdiv' : 'udiv';
+        const rd = val & 0x1f;
+        const rn = (val >> 5) & 0x1f;
+        const rm = (val >> 16) & 0x1f;
+        const rdName = regs[rd] || 'x0';
+        const rnName = regs[rn] || 'x0';
+        const rmName = regs[rm] || 'x0';
+        opStr = `${rdName}, ${rnName}, ${rmName}`;
+        operands = [
+          { type: 'reg', reg: rdName },
+          { type: 'reg', reg: rnName },
+          { type: 'reg', reg: rmName },
+        ];
+      }
+      // MADD / MSUB / MUL / MNEG (Multiply instructions)
+      else if (((val & 0xff200000) >>> 0) === 0x9b000000) {
+        const rd = val & 0x1f;
+        const rn = (val >> 5) & 0x1f;
+        const ra = (val >> 10) & 0x1f;
+        const rm = (val >> 16) & 0x1f;
+        const isSub = (val & 0x00008000) !== 0;
+        
+        const rdName = regs[rd] || 'x0';
+        const rnName = regs[rn] || 'x0';
+        const rmName = regs[rm] || 'x0';
+        const raName = regs[ra] || 'xzr';
+
+        if (raName === 'xzr') {
+          mnemonic = isSub ? 'mneg' : 'mul';
+          opStr = `${rdName}, ${rnName}, ${rmName}`;
+          operands = [
+            { type: 'reg', reg: rdName },
+            { type: 'reg', reg: rnName },
+            { type: 'reg', reg: rmName },
+          ];
+        } else {
+          mnemonic = isSub ? 'msub' : 'madd';
+          opStr = `${rdName}, ${rnName}, ${rmName}, ${raName}`;
+          operands = [
+            { type: 'reg', reg: rdName },
+            { type: 'reg', reg: rnName },
+            { type: 'reg', reg: rmName },
+            { type: 'reg', reg: raName },
           ];
         }
       }

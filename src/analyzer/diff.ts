@@ -353,6 +353,28 @@ export function diffBytes(a: Uint8Array, b: Uint8Array): ByteDiffResult[] {
   }));
 }
 
+function operandsEqual(op1?: any[], op2?: any[]): boolean {
+  const ops1 = op1 || [];
+  const ops2 = op2 || [];
+  if (ops1.length !== ops2.length) return false;
+  for (let i = 0; i < ops1.length; i++) {
+    const o1 = ops1[i];
+    const o2 = ops2[i];
+    if (o1.type !== o2.type) return false;
+    if (o1.reg !== o2.reg) return false;
+    if (o1.value !== o2.value && o1.imm !== o2.imm) return false;
+    if (o1.access !== o2.access) return false;
+    if (!!o1.mem !== !!o2.mem) return false;
+    if (o1.mem && o2.mem) {
+      if (o1.mem.base !== o2.mem.base) return false;
+      if (o1.mem.index !== o2.mem.index) return false;
+      if (o1.mem.scale !== o2.mem.scale) return false;
+      if (o1.mem.disp !== o2.mem.disp) return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Compare two instruction streams and return the diff result.
  */
@@ -363,11 +385,20 @@ export function diffInstructions(
   const entries = myersDiff(a, b, (x, y) => {
     if (x.mnemonic !== y.mnemonic) return false;
     if (x.opStr !== y.opStr) return false;
-    if (x.bytes.length !== y.bytes.length) return false;
-    for (let i = 0; i < x.bytes.length; i++) {
-      if (x.bytes[i] !== y.bytes[i]) return false;
+    if (x.size !== y.size) return false;
+    
+    // Compare bytes safely
+    if (x.bytes && y.bytes) {
+      if (x.bytes.length !== y.bytes.length) return false;
+      for (let i = 0; i < x.bytes.length; i++) {
+        if (x.bytes[i] !== y.bytes[i]) return false;
+      }
+    } else if (x.bytes || y.bytes) {
+      return false;
     }
-    return true;
+
+    // Compare operands using operandsEqual
+    return operandsEqual(x.operands, y.operands);
   });
 
   return entries.map(e => ({

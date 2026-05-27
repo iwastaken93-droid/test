@@ -39,7 +39,7 @@ export class Emulator {
       this.instructions.set(inst.address, inst);
       if (inst.bytes && inst.bytes.length > 0) {
         this.memory.map(BigInt(inst.address), inst.bytes.length);
-        this.memory.writeBuffer(BigInt(inst.address), inst.bytes);
+        this.memory.writeBuffer(BigInt(inst.address), inst.bytes, true);
       }
     }
   }
@@ -131,7 +131,8 @@ export class Emulator {
         this.cpu.write('rip', savedRip + BigInt(inst.size || 1));
       }
 
-      return { success: true, halted: false, hitBreakpoint: false };
+      const halted = this.syscallHandler ? this.syscallHandler.context.exitCode !== null : false;
+      return { success: true, halted, hitBreakpoint: false };
     } catch (err: any) {
       return {
         success: false,
@@ -260,9 +261,7 @@ export class Emulator {
             signDest === signSrc && signRes !== signDest
           );
 
-          if (mnemonic !== 'cmp') {
-            this.writeOperand(ops[0], result, opSize);
-          }
+          this.writeOperand(ops[0], result, opSize);
         } else {
           // sub or cmp
           result = (destVal - srcVal) & mask;
@@ -628,7 +627,8 @@ export class Emulator {
         } else {
           const num = this.tryParseBigInt(token);
           if (num !== null) {
-            memOp.disp = (memOp.disp ?? 0n) + num;
+            const currentDisp = memOp.disp !== undefined ? BigInt(memOp.disp) : 0n;
+            memOp.disp = currentDisp + num;
           } else {
             if (!memOp.base) {
               memOp.base = token;

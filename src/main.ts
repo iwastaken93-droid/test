@@ -64,7 +64,7 @@ interface AppState {
   lastModified?: number;
 }
 
-class ApplicationCoordinator {
+export class ApplicationCoordinator {
   private state!: AppState;
   private patcher: BinaryPatcher | null = null;
 
@@ -571,7 +571,7 @@ class ApplicationCoordinator {
     });
   }
 
-  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg' | 'collab' | 'yara' | 'typeSystem' | 'metadata' | 'demangler') {
+  private switchTab(tabName: 'hex' | 'assembly' | 'cfg' | 'decompiler' | 'strings' | 'search' | 'dependencies' | 'signatures' | 'emulator' | 'report' | 'xrefs' | 'importsExports' | 'patcher' | 'fcg' | 'collab' | 'yara' | 'typeSystem' | 'metadata' | 'demangler' | 'diff') {
     if (this.state.activeTab === tabName) return;
 
     // Toggle button active classes

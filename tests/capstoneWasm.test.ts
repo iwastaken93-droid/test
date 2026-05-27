@@ -101,6 +101,7 @@ describe('CapstoneWasmEngine Unit Tests', () => {
     ]);
 
     const insts = engine.disassemble(data, 0x2000);
+    console.log("DEBUG arm instructions disassemble output:", insts);
     expect(insts.length).toBe(3);
 
     expect(insts[0].address).toBe(0x2000);

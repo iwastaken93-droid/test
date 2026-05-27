@@ -50,7 +50,6 @@ export class ReportPanel {
     this.currentReportData = {
       fileName,
       fileSize,
-      binaryData,
       architecture,
       entryPoint,
       sections,

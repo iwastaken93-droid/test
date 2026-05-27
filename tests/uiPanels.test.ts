@@ -306,7 +306,7 @@ describe('CFGVisualizer Unit Tests', () => {
     expect(layoutBtn).not.toBeNull();
     
     // Toggle layout from layered to stack
-    layoutBtn.click();
+    layoutBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(layoutBtn.textContent).toContain('Stack');
   });
 });

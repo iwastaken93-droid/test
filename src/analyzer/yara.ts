@@ -310,8 +310,8 @@ export function evaluateCondition(condition: string, variableValues: Record<stri
              .replace(/\bnot\b/gi, '!');
 
   const tokenRegex = /\(|\)|&&|\|\||!|true|false/g;
-  const tokens = cond.match(tokenRegex);
-  if (!tokens) {
+  const tokens = cond.match(tokenRegex) || [];
+  if (tokens.length === 0) {
     return false;
   }
 

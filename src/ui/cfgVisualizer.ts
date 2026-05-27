@@ -349,14 +349,14 @@ export class CFGVisualizer {
     btnLayout.className = 'cfg-btn';
     btnLayout.textContent =
       this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
-    btnLayout.onclick = () => {
+    btnLayout.addEventListener('click', () => {
       this.currentLayout =
         this.currentLayout === 'layered' ? 'sequential' : 'layered';
       btnLayout.textContent =
         this.currentLayout === 'layered' ? 'Layout: Layered' : 'Layout: Stack';
       this.render();
       this.fitToScreen();
-    };
+    });
 
     const btnFit = document.createElement('button');
     btnFit.className = 'cfg-btn';
@@ -552,7 +552,7 @@ export class CFGVisualizer {
       header.className = 'cfg-block-header';
 
       const titleSpan = document.createElement('span');
-      titleSpan.textContent = `0x${block.startAddress.toString(16)}`;
+      titleSpan.textContent = block.id;
       header.appendChild(titleSpan);
 
       const sizeSpan = document.createElement('span');

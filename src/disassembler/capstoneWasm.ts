@@ -69,7 +69,7 @@ export class CapstoneWasmEngine {
           size = 4;
         } else if (b === 0xb8) {
           mnemonic = 'mov';
-          const imm = data[offset + 1] | ((data[offset + 2] ?? 0) << 8) | ((data[offset + 3] ?? 0) << 16) | ((data[offset + 4] ?? 0) << 24);
+          const imm = (data[offset + 1] ?? 0) + ((data[offset + 2] ?? 0) << 8) + ((data[offset + 3] ?? 0) << 16) + ((data[offset + 4] ?? 0) * 0x1000000);
           opStr = `eax, 0x${imm.toString(16)}`;
           size = 5;
         } else if (b === 0xc3) {
@@ -96,11 +96,12 @@ export class CapstoneWasmEngine {
     } else if (this.arch === 'arm') {
       while (offset + 3 < data.length) {
         const address = baseAddress + offset;
-        const val =
-          data[offset] |
-          (data[offset + 1] << 8) |
-          (data[offset + 2] << 16) |
-          (data[offset + 3] << 24);
+        const val = (
+          (data[offset] ?? 0) |
+          ((data[offset + 1] ?? 0) << 8) |
+          ((data[offset + 2] ?? 0) << 16) |
+          ((data[offset + 3] ?? 0) << 24)
+        ) >>> 0;
         let mnemonic = 'db';
         let opStr = `0x${val.toString(16).padStart(8, '0')}`;
         const size = 4;
@@ -108,7 +109,7 @@ export class CapstoneWasmEngine {
         if (val === 0xd503201f) {
           mnemonic = 'nop';
           opStr = '';
-        } else if ((val & 0xfffffc1f) === 0xd65f0000) {
+        } else if (((val & 0xfffffc1f) >>> 0) === 0xd65f0000) {
           mnemonic = 'ret';
           opStr = '';
         } else {

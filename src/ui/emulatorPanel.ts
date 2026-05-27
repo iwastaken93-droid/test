@@ -51,8 +51,9 @@ export class EmulatorPanel {
     instructions: Instruction[]
   ) {
     this.stopRunning();
-    this.emulator.loadBinary(binaryData, sections, entryPoint);
-    this.emulator.setInstructions(instructions);
+    this.emulator.reset(entryPoint);
+    this.emulator.memory.loadSections(binaryData, sections);
+    this.emulator.loadInstructions(instructions);
 
     this.updateUI();
   }

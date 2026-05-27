@@ -528,10 +528,24 @@ export class DiffPanel {
           },
         }));
       } else if (data[0] === 0x4d && data[1] === 0x5a) {
-        const pe = new PEParser(arrayBuffer);
-        pe.parse();
-        entryPoint = pe.getEntryPoint();
-        sections = pe.getSections();
+        const peParser = new PEParser(arrayBuffer);
+        const pe = peParser.parse();
+        entryPoint =
+          Number(pe.optionalHeader.addressOfEntryPoint) +
+          Number(pe.optionalHeader.imageBase);
+        sections = pe.sections.map((s: any) => ({
+          name: s.name,
+          virtualAddress:
+            s.virtualAddress + Number(pe.optionalHeader.imageBase),
+          virtualSize: s.virtualSize,
+          fileOffset: s.pointerToRawData,
+          fileSize: s.sizeOfRawData,
+          flags: {
+            read: (s.characteristics & 0x40000000) !== 0,
+            write: (s.characteristics & 0x80000000) !== 0,
+            execute: (s.characteristics & 0x20000000) !== 0,
+          },
+        }));
       } else if (
         (data[0] === 0xfe && data[1] === 0xed && data[2] === 0xfa && data[3] === 0xce) ||
         (data[0] === 0xce && data[1] === 0xfa && data[2] === 0xed && data[3] === 0xfe) ||
@@ -539,17 +553,50 @@ export class DiffPanel {
         (data[0] === 0xcf && data[1] === 0xfa && data[2] === 0xed && data[3] === 0xfe)
       ) {
         const macho = parseMacho(arrayBuffer);
-        entryPoint = macho.entryPoint;
-        sections = macho.sections;
+        sections = macho.sections.map((s: any) => ({
+          name: s.sectname,
+          virtualAddress: Number(s.addr),
+          virtualSize: Number(s.size),
+          fileOffset: s.offset,
+          fileSize: Number(s.size),
+          flags: {
+            read: true,
+            write: (s.flags & 0x2) !== 0,
+            execute: s.sectname === '__text',
+          },
+        }));
+        const textSection = sections.find((s) => s.name === '__text');
+        if (textSection) {
+          entryPoint = textSection.virtualAddress;
+        } else if (macho.symbols.length > 0) {
+          entryPoint = Number(macho.symbols[0].value);
+        }
       } else if (
         data[0] === 0x64 &&
         data[1] === 0x65 &&
         data[2] === 0x78 &&
         data[3] === 0x0a
       ) {
-        const dex = parseDex(arrayBuffer);
-        entryPoint = 0;
-        sections = dex.sections;
+        const dex = parseDex(data);
+        entryPoint = dex.entryPoint || 0x1000;
+        sections = [
+          {
+            name: '.header',
+            virtualAddress: 0,
+            virtualSize: dex.header.headerSize,
+            fileOffset: 0,
+            fileSize: dex.header.headerSize,
+            flags: { read: true, write: false, execute: false },
+          },
+          {
+            name: '.code',
+            virtualAddress: dex.header.dataOff || 0x1000,
+            virtualSize: dex.header.dataSize || data.length,
+            fileOffset: dex.header.dataOff || 0,
+            fileSize: dex.header.dataSize || data.length,
+            flags: { read: true, write: false, execute: true },
+          }
+        ];
       }
     } catch (e) {
       console.warn("Failed to parse file structure, falling back to raw data", e);
@@ -560,9 +607,10 @@ export class DiffPanel {
     // Disassemble
     const router = new DisassemblerRouter();
     this.instructions2 = router.disassemble(data, {
-      entryPoint: entryPoint,
-      sections: sections,
-      architecture: arch,
+      arch,
+      baseAddress:
+        sections.find((s: any) => s.flags.execute)?.virtualAddress || 0x1000,
+      entryPoint,
     });
 
     this.render();

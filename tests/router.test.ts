@@ -137,6 +137,48 @@ describe('DisassemblerRouter Unit Tests', () => {
       expect(insts[0].mnemonic).toBe('neg');
       expect(insts[0].opStr).toBe('rax');
     });
+
+    it('should disassemble ADC correctly', () => {
+      const data = new Uint8Array([0x11, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('adc');
+      expect(insts[0].opStr).toBe('rbx, rax');
+    });
+
+    it('should disassemble SBB correctly', () => {
+      const data = new Uint8Array([0x19, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('sbb');
+      expect(insts[0].opStr).toBe('rbx, rax');
+    });
+
+    it('should disassemble 8-bit ADD correctly', () => {
+      const data = new Uint8Array([0x00, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('add');
+      expect(insts[0].opStr).toBe('rbx, rax');
+    });
+
+    it('should disassemble CMOVcc instructions correctly', () => {
+      const data = new Uint8Array([0x0f, 0x45, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('cmovne');
+      expect(insts[0].opStr).toBe('rax, rbx');
+    });
+
+    it('should disassemble BSF / BSR correctly', () => {
+      const data = new Uint8Array([0x0f, 0xbc, 0xc3]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('bsf');
+      expect(insts[0].opStr).toBe('rax, rbx');
+    });
+
+    it('should disassemble UD2 correctly', () => {
+      const data = new Uint8Array([0x0f, 0x0b]);
+      const insts = router.disassemble(data, { arch: 'x86_64' });
+      expect(insts[0].mnemonic).toBe('ud2');
+      expect(insts[0].opStr).toBe('');
+    });
   });
 
   describe('ARM AArch64 Instruction Expansion Verification', () => {
@@ -172,6 +214,54 @@ describe('DisassemblerRouter Unit Tests', () => {
       const insts = router.disassemble(data, { arch: 'arm' });
       expect(insts[0].mnemonic).toBe('mrs');
       expect(insts[0].opStr).toBe('x0, nzcv');
+    });
+
+    it('should disassemble BIC register correctly', () => {
+      // bic x0, x1, x2 -> LE: 20, 00, 22, 0a
+      const data = new Uint8Array([0x20, 0x00, 0x22, 0x0a]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('bic');
+      expect(insts[0].opStr).toBe('x0, x1, x2');
+    });
+
+    it('should disassemble ORN register correctly', () => {
+      // orn x0, x1, x2 -> LE: 20, 00, 22, aa
+      const data = new Uint8Array([0x20, 0x00, 0x22, 0xaa]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('orn');
+      expect(insts[0].opStr).toBe('x0, x1, x2');
+    });
+
+    it('should disassemble UDIV register correctly', () => {
+      // udiv x0, x1, x2 -> LE: 20, 08, c2, 1a
+      const data = new Uint8Array([0x20, 0x08, 0xc2, 0x1a]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('udiv');
+      expect(insts[0].opStr).toBe('x0, x1, x2');
+    });
+
+    it('should disassemble SDIV register correctly', () => {
+      // sdiv x0, x1, x2 -> LE: 20, 0c, c2, 1a
+      const data = new Uint8Array([0x20, 0x0c, 0xc2, 0x1a]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('sdiv');
+      expect(insts[0].opStr).toBe('x0, x1, x2');
+    });
+
+    it('should disassemble MUL register correctly', () => {
+      // mul x0, x1, x2 -> LE: 20, 7c, 02, 9b
+      const data = new Uint8Array([0x20, 0x7c, 0x02, 0x9b]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('mul');
+      expect(insts[0].opStr).toBe('x0, x1, x2');
+    });
+
+    it('should disassemble MADD register correctly', () => {
+      // madd x0, x1, x2, x3 -> LE: 20, 0c, 02, 9b
+      const data = new Uint8Array([0x20, 0x0c, 0x02, 0x9b]);
+      const insts = router.disassemble(data, { arch: 'arm' });
+      expect(insts[0].mnemonic).toBe('madd');
+      expect(insts[0].opStr).toBe('x0, x1, x2, x3');
     });
   });
 });
